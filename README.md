@@ -65,7 +65,7 @@ From repository root:
 
 ```bash
 dotnet test BeaconRelay.slnx
-dotnet run --project /home/runner/work/Beacon-Relay-2.0/Beacon-Relay-2.0/BeaconRelay.LpdReceiver/BeaconRelay.LpdReceiver.csproj
+dotnet run --project BeaconRelay.LpdReceiver/BeaconRelay.LpdReceiver.csproj
 ```
 
 ## Database migration/init
