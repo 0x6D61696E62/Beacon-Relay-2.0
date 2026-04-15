@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BeaconRelay.LpdReceiver.Tests/BeaconRelay.LpdReceiver.Tests.csproj" />
+  <Project Path="BeaconRelay.LpdReceiver/BeaconRelay.LpdReceiver.csproj" />
+</Solution>
