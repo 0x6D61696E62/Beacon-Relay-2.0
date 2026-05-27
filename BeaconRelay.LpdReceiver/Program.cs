@@ -41,6 +41,23 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Extract directory path from connection string and ensure it exists
+    var connectionString = db.Database.GetConnectionString();
+    if (connectionString != null)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Data Source=(.+?)(?:;|$)");
+        if (match.Success)
+        {
+            var dbPath = match.Groups[1].Value;
+            var directory = Path.GetDirectoryName(dbPath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+        }
+    }
+
     await db.Database.MigrateAsync();
 }
 
@@ -57,3 +74,5 @@ app.MapHealthChecks(effectiveHealthOptions.ReadinessPath, new HealthCheckOptions
 });
 
 await app.RunAsync();
+
+//dotnet ef migrations add AddVirtualPrinters --project BeaconRelay.LpdReceiver

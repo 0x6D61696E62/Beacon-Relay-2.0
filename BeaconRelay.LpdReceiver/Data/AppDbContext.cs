@@ -5,6 +5,7 @@ namespace BeaconRelay.LpdReceiver.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<ReceivedFileRecord> ReceivedFiles => Set<ReceivedFileRecord>();
+    public DbSet<VirtualPrinterRecord> VirtualPrinters => Set<VirtualPrinterRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
