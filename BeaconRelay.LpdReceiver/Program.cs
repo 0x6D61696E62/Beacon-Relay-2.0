@@ -19,7 +19,8 @@ var healthOptions = builder.Configuration.GetSection(HealthEndpointOptions.Secti
 builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(healthOptions.Port));
 
 var databaseOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(databaseOptions.ConnectionString));
+var normalizedConnectionString = SqliteDatabasePath.NormalizeConnectionString(databaseOptions.ConnectionString) ?? databaseOptions.ConnectionString;
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(normalizedConnectionString));
 
 builder.Services.AddSingleton<ListenerState>();
 builder.Services.AddSingleton<Sha256Hasher>();
@@ -41,23 +42,7 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    // Extract directory path from connection string and ensure it exists
-    var connectionString = db.Database.GetConnectionString();
-    if (connectionString != null)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Data Source=(.+?)(?:;|$)");
-        if (match.Success)
-        {
-            var dbPath = match.Groups[1].Value;
-            var directory = Path.GetDirectoryName(dbPath);
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-        }
-    }
-
+    SqliteDatabasePath.EnsureDirectoryExists(db.Database.GetConnectionString());
     await db.Database.MigrateAsync();
 }
 
