@@ -1,0 +1,156 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\dev\\Beacon-Relay-2.0\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\beaconrelay.lpdreceiver.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\beaconrelay.lpdreceiver.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2A03C194-BAED-3FB3-A288-B527C7339DAA}|BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver.tests\\beaconrelay.lpdreceiver.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2A03C194-BAED-3FB3-A288-B527C7339DAA}|BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj|solutionrelative:beaconrelay.lpdreceiver.tests\\beaconrelay.lpdreceiver.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\data\\virtualprinterrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\data\\virtualprinterrecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\data\\protocoltype.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\data\\protocoltype.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\data\\receivedfilerecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\data\\receivedfilerecord.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|e:\\dev\\beacon-relay-2.0\\beaconrelay.lpdreceiver\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{0008BB74-2507-A723-5FAD-38F761073A7C}|BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj|solutionrelative:beaconrelay.lpdreceiver\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "BeaconRelay.LpdReceiver",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\BeaconRelay.LpdReceiver.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-27T13:25:38.785Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "BeaconRelay.LpdReceiver.Tests",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver.Tests\\BeaconRelay.LpdReceiver.Tests.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-27T14:22:46.277Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ReceivedFileRecord.cs",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\ReceivedFileRecord.cs",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\Data\\ReceivedFileRecord.cs",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\ReceivedFileRecord.cs",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\Data\\ReceivedFileRecord.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:19:32.352Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\Data\\AppDbContext.cs",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\AppDbContext.cs",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\Data\\AppDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:08:31.626Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ProtocolType.cs",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\ProtocolType.cs",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\Data\\ProtocolType.cs",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\ProtocolType.cs",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\Data\\ProtocolType.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:08:22.536Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "VirtualPrinterRecord.cs",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\VirtualPrinterRecord.cs",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\Data\\VirtualPrinterRecord.cs",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Data\\VirtualPrinterRecord.cs",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\Data\\VirtualPrinterRecord.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T14:08:22.455Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\appsettings.json",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\appsettings.json",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\appsettings.json",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\appsettings.json",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABUAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-04-15T20:12:07.532Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Program.cs",
+              "RelativeDocumentMoniker": "BeaconRelay.LpdReceiver\\Program.cs",
+              "ToolTip": "E:\\dev\\Beacon-Relay-2.0\\BeaconRelay.LpdReceiver\\Program.cs",
+              "RelativeToolTip": "BeaconRelay.LpdReceiver\\Program.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAADwAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-15T20:07:18.602Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
