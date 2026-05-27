@@ -1,0 +1,67 @@
+**/bin/
+**/obj/
+*.db
+*.db-shm
+*.db-wal
+logs/
+data/inbox/
+data/outbox/
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+*.sln
+*.user
+*.suo
+*.csproj.user
+*.cache
+*.pdb
+*.dll
+*.exe
+*.zip
+*.tar.gz
+*.7z
+
+# Ignore environment variable files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Ignore npm and yarn lock files
+package-lock.json
+yarn.lock
+# Ignore coverage reports
+coverage/
+# Ignore build artifacts
+dist/
+build/
+# Ignore node_modules
+node_modules/
+# Ignore logs
+logs/
+# Ignore temporary files
+*.log
+*.tmp
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.sln
+*.user
+*.suo
+*.csproj.user
+*.vs
+
+# Ignore database files
+*.db
+*.db-shm
+*.db-wal
+BeaconRelay.LpdReceiver/Data/inbox/
