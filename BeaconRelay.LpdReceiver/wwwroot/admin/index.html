@@ -5,209 +5,375 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Beacon Relay Admin</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
+
     :root {
-      --bg: #efe7db;
-      --ink: #21170f;
-      --card: #fffaf3;
-      --line: #d7c8b4;
-      --accent: #a24723;
-      --accent-2: #245f61;
-      --accent-3: #6a4e1d;
-      --ok: #1d7b43;
-      --bad: #ab2f2f;
-      --warn: #9b6d08;
-      --shadow: rgba(35, 22, 12, 0.09);
+      --bg: #edf1f7;
+      --bg-soft: #f8fafc;
+      --ink: #1b2735;
+      --ink-soft: #5b6b7f;
+      --card: #ffffff;
+      --line: #d8e0eb;
+      --accent: #0f5cc0;
+      --accent-2: #0e7a73;
+      --accent-3: #2f3f57;
+      --ok: #12824e;
+      --bad: #c73838;
+      --warn: #b27a1d;
+      --shadow-lg: 0 16px 42px rgba(19, 35, 62, 0.16);
+      --shadow-sm: 0 4px 14px rgba(19, 35, 62, 0.08);
+      --radius: 16px;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top left, #fff8ee 0%, transparent 24%),
-        linear-gradient(180deg, #f8f0e2 0%, var(--bg) 100%);
+        radial-gradient(85% 120% at -10% -20%, #c6d8ff 0%, transparent 58%),
+        radial-gradient(90% 110% at 110% -10%, #caefe8 0%, transparent 48%),
+        linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+      min-height: 100vh;
     }
+
     header {
-      padding: 20px;
-      border-bottom: 1px solid var(--line);
-      background: linear-gradient(90deg, #fff5e6 0%, #ece3d8 100%);
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(216, 224, 235, 0.9);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(237, 244, 255, 0.9) 100%);
+      backdrop-filter: blur(8px);
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       align-items: center;
     }
+
     h1, h2, h3 { margin: 0; }
-    h1 { font-size: 1.45rem; letter-spacing: 0.02em; }
-    main {
-      max-width: 1360px;
-      margin: 0 auto;
-      padding: 16px;
+
+    h1 {
+      font-size: clamp(1.4rem, 1.05rem + 1.2vw, 2.1rem);
+      letter-spacing: -0.02em;
+      font-weight: 800;
     }
+
+    h2 {
+      letter-spacing: -0.01em;
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
     .layout {
       display: grid;
-      gap: 16px;
+      gap: 20px;
       grid-template-columns: 1fr;
     }
+
     @media (min-width: 980px) {
-      .layout { grid-template-columns: 260px 1fr; }
+      .layout { grid-template-columns: minmax(220px, 270px) 1fr; }
     }
+
     .side-nav {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      box-shadow: 0 10px 24px var(--shadow);
-      padding: 12px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 14px;
       height: fit-content;
       position: sticky;
-      top: 16px;
+      top: 18px;
+      overflow: hidden;
     }
+
+    .side-nav::before {
+      content: "";
+      display: block;
+      height: 4px;
+      margin: -14px -14px 12px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+    }
+
     .side-nav h2 {
-      font-size: 0.95rem;
-      margin: 0 0 10px;
-      color: #5c4327;
+      font-size: 0.92rem;
+      margin: 0 0 5px;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
     }
+
+    .side-nav .hint {
+      margin-bottom: 12px;
+      color: var(--ink-soft);
+    }
+
     .nav-links {
       display: grid;
       gap: 8px;
     }
+
     .nav-links button {
       text-align: left;
       width: 100%;
       font-weight: 600;
-      background: #fff8ee;
+      background: #f5f8fd;
+      border: 1px solid #dce5f2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
     }
+
+    .nav-links button:hover {
+      transform: translateY(-1px);
+      border-color: #bdcce2;
+      box-shadow: var(--shadow-sm);
+    }
+
     .nav-links button.active {
       background: var(--accent);
       color: #fff;
       border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(15, 92, 192, 0.35);
     }
+
     .content-area {
       display: grid;
-      gap: 16px;
+      gap: 18px;
     }
+
     .view-section {
       display: none;
-      gap: 16px;
+      gap: 18px;
+      animation: fade-slide-in 260ms ease;
     }
+
     .view-section.active {
       display: grid;
     }
+
+    @keyframes fade-slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 14px;
     }
+
     @media (min-width: 1000px) {
       .grid-2 { grid-template-columns: 1fr 1fr; }
     }
+
     .card {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: 0 10px 24px var(--shadow);
+      box-shadow: var(--shadow-sm);
     }
+
     .card h2 {
-      padding: 12px 14px;
-      font-size: 1rem;
+      padding: 14px 16px;
+      font-size: 1.02rem;
       border-bottom: 1px solid var(--line);
-      background: #fff2df;
+      background: linear-gradient(90deg, #f7faff 0%, #f3fbf9 100%);
     }
-    .body { padding: 12px; }
+
+    .body { padding: 14px; }
+
     .toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       margin-bottom: 12px;
       align-items: end;
     }
+
     button {
       border: 1px solid var(--line);
-      background: #fff;
+      background: #ffffff;
       color: var(--ink);
-      border-radius: 8px;
-      padding: 8px 11px;
+      border-radius: 10px;
+      padding: 9px 13px;
       cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, border-color 140ms ease;
     }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+    }
+
     button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     button.refresh { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
     button.secondary { background: var(--accent-3); color: #fff; border-color: var(--accent-3); }
-    button.danger { background: #fff1f1; color: var(--bad); border-color: #e1b1b1; }
+
+    button.danger {
+      background: #fff2f2;
+      color: var(--bad);
+      border-color: #efc3c3;
+    }
+
     input, select {
       width: 100%;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 8px;
+      border-radius: 10px;
+      padding: 10px 11px;
       background: #fff;
       color: var(--ink);
+      font-family: inherit;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
     }
+
+    input:focus,
+    select:focus,
+    button:focus-visible {
+      outline: none;
+      border-color: #79a8e8;
+      box-shadow: 0 0 0 3px rgba(15, 92, 192, 0.16);
+    }
+
     label {
       display: block;
-      font-size: 0.84rem;
+      font-size: 0.81rem;
       margin-bottom: 8px;
       min-width: 120px;
+      color: var(--ink-soft);
+      font-weight: 600;
+      letter-spacing: 0.01em;
     }
+
     .row, .row-3 {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: 10px;
     }
+
     @media (min-width: 760px) {
       .row { grid-template-columns: 1fr 1fr; }
       .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
+      border-radius: 12px;
+      overflow: hidden;
     }
+
     th, td {
-      padding: 8px;
+      padding: 10px 9px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
     }
-    tr:hover td { background: #fff9f1; }
+
+    th {
+      background: #f6f9fd;
+      color: #49607d;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    tr:hover td { background: #f8fbff; }
+
     .pill {
       display: inline-block;
       border-radius: 999px;
-      padding: 2px 8px;
-      font-size: 0.76rem;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 700;
       border: 1px solid transparent;
+      background: #f7f9fc;
     }
+
     .ok { color: var(--ok); border-color: var(--ok); }
     .bad { color: var(--bad); border-color: var(--bad); }
     .warn { color: var(--warn); border-color: var(--warn); }
-    .muted { color: #6e6457; }
+
+    .muted { color: var(--ink-soft); }
+
     .error {
       margin-top: 8px;
       color: var(--bad);
       font-size: 0.85rem;
       min-height: 1.2em;
       white-space: pre-wrap;
+      line-height: 1.4;
     }
+
     .hint {
       font-size: 0.83rem;
-      color: #6e6457;
+      color: var(--ink-soft);
       margin-bottom: 8px;
+      line-height: 1.4;
     }
+
     .details-panel {
-      background: #fffdf9;
-      border: 1px dashed var(--line);
-      border-radius: 10px;
-      padding: 12px;
+      background: linear-gradient(165deg, #fbfdff 0%, #f4faf9 100%);
+      border: 1px solid #d8e8e7;
+      border-radius: 14px;
+      padding: 14px;
     }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
+
     .meta {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
+    }
+
+    #authStatus {
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.8rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #eef5ff;
+      border: 1px solid #c9dbf5;
+      color: #365a8c;
+    }
+
+    @media (max-width: 720px) {
+      header { padding: 16px; }
+      main { padding: 12px; }
+      .toolbar > * { width: 100%; }
+      .toolbar button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
     }
   </style>
 </head>
@@ -215,7 +381,7 @@
   <header>
     <div>
       <h1>Beacon Relay Admin</h1>
-      <div class="muted">Rules, destinations, retry policy selection, and paged delivery operations.</div>
+      <div class="muted">Operational control center for routing rules, destination policy, and delivery execution.</div>
     </div>
     <div class="meta">
       <div id="authStatus" class="muted"></div>
@@ -227,10 +393,11 @@
     <div class="layout">
       <aside class="side-nav">
         <h2>Settings Menu</h2>
+        <div class="hint">Select a module to configure and save.</div>
         <div class="nav-links">
-          <button class="active" data-view-target="rules">Rules</button>
-          <button data-view-target="folder">Folder</button>
-          <button data-view-target="lpd">LPD</button>
+          <button class="active" data-view-target="rules">Rules and Matching</button>
+          <button data-view-target="folder">Folder Routing</button>
+          <button data-view-target="lpd">LPD Forwarding</button>
           <button data-view-target="delivery">Delivery Queue</button>
         </div>
       </aside>
