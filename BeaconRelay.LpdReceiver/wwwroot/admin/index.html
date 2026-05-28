@@ -681,13 +681,29 @@
     async function fetchJson(url, options) {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
       let payload = null;
-      try { payload = await response.json(); } catch (_) {}
+
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (contentType.includes('application/json')) {
+        try { payload = await response.json(); } catch (_) {}
+      } else {
+        const rawText = await response.text();
+        const trimmedText = (rawText || '').trim();
+        if (trimmedText.length > 0) {
+          try { payload = JSON.parse(trimmedText); } catch (_) { payload = { detail: trimmedText }; }
+        }
+      }
+
       if (!response.ok) {
         const detail = formatApiError(payload, response.statusText);
         const error = new Error(detail);
         error.payload = payload;
         throw error;
       }
+
+      if (payload === null && response.status !== 204) {
+        throw new Error('Server returned an empty response.');
+      }
+
       return payload;
     }
 
@@ -982,6 +998,7 @@
 
     async function loadQueue() {
       try {
+        el('queueError').textContent = '';
         const status = el('queueStatusFilter').value;
         const search = el('queueSearch').value.trim();
         const pageSize = Number(el('queuePageSize').value);
@@ -990,6 +1007,10 @@
         if (search) query.set('search', search);
 
         const result = await fetchJson('/api/delivery/work-items?' + query.toString());
+        if (!result || typeof result !== 'object') {
+          throw new Error('Unexpected queue response from server.');
+        }
+
         state.workItems = result.items || [];
         state.queuePage = result.page || 1;
         state.queueTotalPages = result.totalPages || 1;
