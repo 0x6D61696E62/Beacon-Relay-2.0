@@ -15,6 +15,7 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(Dat
 builder.Services.Configure<DeduplicationOptions>(builder.Configuration.GetSection(DeduplicationOptions.SectionName));
 builder.Services.Configure<RetentionOptions>(builder.Configuration.GetSection(RetentionOptions.SectionName));
 builder.Services.Configure<HealthEndpointOptions>(builder.Configuration.GetSection(HealthEndpointOptions.SectionName));
+builder.Services.Configure<AdminAuthOptions>(builder.Configuration.GetSection(AdminAuthOptions.SectionName));
 
 var healthOptions = builder.Configuration.GetSection(HealthEndpointOptions.SectionName).Get<HealthEndpointOptions>() ?? new HealthEndpointOptions();
 builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(healthOptions.Port));
@@ -61,6 +62,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 var effectiveHealthOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthEndpointOptions>>().Value;
 
+app.UseMiddleware<AdminBasicAuthMiddleware>();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using BeaconRelay.LpdReceiver.Data;
@@ -107,11 +108,68 @@ public sealed class ApiValidationTests
         Assert.Contains("Beacon Relay Admin", body, StringComparison.Ordinal);
     }
 
-    private sealed class BeaconWebAppFactory : WebApplicationFactory<Program>
+    [Fact]
+    public async Task ApiRoute_WhenAuthEnabled_WithoutCredentials_ReturnsUnauthorized()
+    {
+        await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/rules");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotNull(response.Headers.WwwAuthenticate.FirstOrDefault(x => x.Scheme == "Basic"));
+    }
+
+    [Fact]
+    public async Task AdminRoute_WhenAuthEnabled_WithCredentials_ReturnsOk()
+    {
+        await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = BuildBasicAuthHeader("admin", "test-secret");
+
+        using var response = await client.GetAsync("/admin/index.html");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Beacon Relay Admin", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApiRoute_WhenAuthEnabled_WithCredentials_AllowsValidationResponse()
+    {
+        await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = BuildBasicAuthHeader("admin", "test-secret");
+
+        var payload = """
+        {
+          "name": "invalid-rule",
+          "priority": 1,
+          "isEnabled": true,
+          "matchOperator": "BadValue",
+          "queueMatchType": "Exact",
+          "queueMatchValue": "queueA",
+          "sourceIpCidr": null,
+          "virtualPrinterId": null,
+          "stopProcessingOnMatch": false
+        }
+        """;
+
+        using var response = await client.PostAsync("/api/rules", new StringContent(payload, Encoding.UTF8, "application/json"));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("MatchOperator", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private sealed class BeaconWebAppFactory(bool enableAdminAuth = false) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.UseSetting("AdminAuth:Enabled", enableAdminAuth ? "true" : "false");
+            builder.UseSetting("AdminAuth:Username", "admin");
+            builder.UseSetting("AdminAuth:Password", "test-secret");
 
             builder.ConfigureServices(services =>
             {
@@ -134,5 +192,11 @@ public sealed class ApiValidationTests
                 db.Database.EnsureCreated();
             });
         }
+    }
+
+    private static AuthenticationHeaderValue BuildBasicAuthHeader(string username, string password)
+    {
+        var raw = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        return new AuthenticationHeaderValue("Basic", raw);
     }
 }

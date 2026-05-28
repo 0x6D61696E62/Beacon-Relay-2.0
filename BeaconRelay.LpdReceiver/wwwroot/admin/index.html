@@ -6,42 +6,42 @@
   <title>Beacon Relay Admin</title>
   <style>
     :root {
-      --bg: #f3f0ea;
-      --ink: #1f1a14;
+      --bg: #efe7db;
+      --ink: #21170f;
       --card: #fffaf3;
-      --line: #d9cfc2;
-      --accent: #a44a1f;
-      --accent-2: #2f6b6a;
-      --ok: #1f7a45;
+      --line: #d7c8b4;
+      --accent: #a24723;
+      --accent-2: #245f61;
+      --accent-3: #6a4e1d;
+      --ok: #1d7b43;
       --bad: #ab2f2f;
-      --warn: #9e6a09;
+      --warn: #9b6d08;
+      --shadow: rgba(35, 22, 12, 0.09);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       color: var(--ink);
-      background: radial-gradient(circle at 20% 10%, #fffaf2 0%, var(--bg) 55%);
+      background:
+        radial-gradient(circle at top left, #fff8ee 0%, transparent 24%),
+        linear-gradient(180deg, #f8f0e2 0%, var(--bg) 100%);
     }
     header {
       padding: 20px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(90deg, #fef6e9 0%, #f0ece4 100%);
+      background: linear-gradient(90deg, #fff5e6 0%, #ece3d8 100%);
     }
-    h1 {
-      margin: 0;
-      font-size: 1.4rem;
-      letter-spacing: 0.02em;
-    }
+    h1, h2, h3 { margin: 0; }
+    h1 { font-size: 1.45rem; letter-spacing: 0.02em; }
     main {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      padding: 16px;
-      max-width: 1200px;
+      max-width: 1320px;
       margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 16px;
     }
-    .grid-2 {
+    .grid-2, .grid-3 {
       display: grid;
       grid-template-columns: 1fr;
       gap: 16px;
@@ -49,26 +49,29 @@
     @media (min-width: 900px) {
       .grid-2 { grid-template-columns: 1fr 1fr; }
     }
+    @media (min-width: 1200px) {
+      .grid-3 { grid-template-columns: 1.2fr 1fr 1fr; }
+    }
     .card {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 3px 8px rgba(47, 35, 22, 0.08);
+      box-shadow: 0 10px 24px var(--shadow);
     }
     .card h2 {
-      margin: 0;
       padding: 12px 14px;
       font-size: 1rem;
       border-bottom: 1px solid var(--line);
-      background: #fff3e4;
+      background: #fff2df;
     }
-    .card .body { padding: 12px; }
+    .body { padding: 12px; }
     .toolbar {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
+      align-items: center;
     }
     button {
       border: 1px solid var(--line);
@@ -78,35 +81,31 @@
       padding: 8px 11px;
       cursor: pointer;
     }
-    button.primary {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    button.refresh {
-      background: var(--accent-2);
-      color: #fff;
-      border-color: var(--accent-2);
-    }
-    input, select {
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.refresh { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
+    button.secondary { background: var(--accent-3); color: #fff; border-color: var(--accent-3); }
+    button.danger { background: #fff1f1; color: var(--bad); border-color: #e1b1b1; }
+    input, select, textarea {
+      width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 8px;
-      width: 100%;
       background: #fff;
+      color: var(--ink);
     }
     label {
       display: block;
       font-size: 0.84rem;
       margin-bottom: 8px;
     }
-    .row {
+    .row, .row-3 {
       display: grid;
       grid-template-columns: 1fr;
       gap: 8px;
     }
-    @media (min-width: 700px) {
+    @media (min-width: 760px) {
       .row { grid-template-columns: 1fr 1fr; }
+      .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     }
     table {
       width: 100%;
@@ -119,6 +118,7 @@
       text-align: left;
       vertical-align: top;
     }
+    tr:hover td { background: #fff9f1; }
     .pill {
       display: inline-block;
       border-radius: 999px;
@@ -135,116 +135,427 @@
       color: var(--bad);
       font-size: 0.85rem;
       min-height: 1.2em;
+      white-space: pre-wrap;
+    }
+    .hint {
+      font-size: 0.83rem;
+      color: #6e6457;
+      margin-bottom: 8px;
+    }
+    .details-panel {
+      background: #fffdf9;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
   </style>
 </head>
 <body>
   <header>
     <h1>Beacon Relay Admin</h1>
-    <div class="muted">Queue rules, live delivery queue, and fast retry controls.</div>
+    <div class="muted">Rules, folder and LPD destinations, live queue filters, and attempt history.</div>
   </header>
 
   <main>
+    <section class="card">
+      <h2>Rules</h2>
+      <div class="body">
+        <div class="row-3">
+          <label>Rule Name
+            <input id="ruleName" value="New Rule">
+          </label>
+          <label>Priority
+            <input id="rulePriority" type="number" value="100" min="0">
+          </label>
+          <label>Queue Match Type
+            <select id="queueType">
+              <option>Exact</option>
+              <option>Wildcard</option>
+              <option>Regex</option>
+            </select>
+          </label>
+        </div>
+        <div class="row-3">
+          <label>Queue Match Value
+            <input id="queueValue" value="main">
+          </label>
+          <label>Match Operator
+            <select id="matchOperator">
+              <option>And</option>
+              <option>Or</option>
+            </select>
+          </label>
+          <label>Status
+            <select id="ruleEnabled">
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </label>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="saveRule">Save Rule</button>
+          <button id="resetRule">Reset Form</button>
+          <button class="refresh" id="refreshRules">Refresh Rules</button>
+        </div>
+        <div class="hint">Select Edit on a row to update it, or Delete to remove it.</div>
+        <div class="error" id="ruleError"></div>
+        <table>
+          <thead>
+            <tr><th>Priority</th><th>Name</th><th>Match</th><th>Destinations</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody id="rulesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <div class="grid-2">
       <section class="card">
-        <h2>Quick Rule</h2>
+        <h2>Folder Destinations</h2>
         <div class="body">
           <div class="row">
-            <label>Rule Name
-              <input id="ruleName" value="New Rule">
+            <label>Rule
+              <select id="folderRuleId"></select>
             </label>
-            <label>Priority
-              <input id="rulePriority" type="number" value="100" min="0">
+            <label>Destination Order
+              <input id="folderOrder" type="number" value="1" min="0">
             </label>
           </div>
           <div class="row">
-            <label>Queue Match Type
-              <select id="queueType">
-                <option>Exact</option>
-                <option>Wildcard</option>
-                <option>Regex</option>
+            <label>Root Folder
+              <input id="folderRoot" value="data/routed">
+            </label>
+            <label>Subfolder Pattern Type
+              <select id="folderPatternType">
+                <option>DotNetDateFormat</option>
+                <option>TokenTemplate</option>
               </select>
             </label>
-            <label>Queue Match Value
-              <input id="queueValue" value="main">
+          </div>
+          <div class="row">
+            <label>Subfolder Pattern
+              <input id="folderPattern" value="yyyy/MM/dd">
+            </label>
+            <label>Duplicate Policy
+              <select id="folderDuplicatePolicy">
+                <option>Overwrite</option>
+                <option>Fail</option>
+                <option selected>UniqueName</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <label>Unique Name Mode
+              <select id="folderUniqueNameMode">
+                <option selected>Counter</option>
+                <option>Timestamp</option>
+                <option>Guid</option>
+                <option>HashFragment</option>
+              </select>
+            </label>
+            <label>Unique Affix
+              <input id="folderUniqueAffix" placeholder="copy">
+            </label>
+          </div>
+          <div class="row">
+            <label>Enabled
+              <select id="folderEnabled">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </label>
+            <label>Retry On Failure
+              <select id="folderRetryOnFailure">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
             </label>
           </div>
           <div class="toolbar">
-            <button class="primary" id="createRule">Create Rule</button>
-            <button class="refresh" id="refreshRules">Refresh Rules</button>
+            <button class="primary" id="saveFolder">Save Folder Destination</button>
+            <button id="resetFolder">Reset Form</button>
           </div>
-          <div class="error" id="ruleError"></div>
+          <div class="error" id="folderError"></div>
           <table>
             <thead>
-              <tr><th>Priority</th><th>Name</th><th>Match</th><th>Status</th></tr>
+              <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Policy</th><th>Action</th></tr>
             </thead>
-            <tbody id="rulesBody"></tbody>
+            <tbody id="folderBody"></tbody>
           </table>
         </div>
       </section>
 
       <section class="card">
-        <h2>Delivery Queue</h2>
+        <h2>LPD Forward Destinations</h2>
         <div class="body">
-          <div class="toolbar">
-            <button class="refresh" id="refreshQueue">Refresh Queue</button>
+          <div class="row">
+            <label>Rule
+              <select id="forwardRuleId"></select>
+            </label>
+            <label>Destination Order
+              <input id="forwardOrder" type="number" value="1" min="0">
+            </label>
           </div>
+          <div class="row">
+            <label>Host
+              <input id="forwardHost" value="127.0.0.1">
+            </label>
+            <label>Port
+              <input id="forwardPort" type="number" value="515" min="1" max="65535">
+            </label>
+          </div>
+          <div class="row">
+            <label>Outbound Queue Name
+              <input id="forwardQueue" value="remote-queue">
+            </label>
+            <label>Compression
+              <select id="forwardCompression">
+                <option>None</option>
+                <option>ZipArchive</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <label>Payload Mode
+              <select id="forwardPayloadMode">
+                <option>StoredFile</option>
+                <option>OriginalFile</option>
+              </select>
+            </label>
+            <label>Enabled
+              <select id="forwardEnabled">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </label>
+          </div>
+          <div class="toolbar">
+            <button class="primary" id="saveForward">Save Forward Destination</button>
+            <button id="resetForward">Reset Form</button>
+          </div>
+          <div class="error" id="forwardError"></div>
           <table>
             <thead>
-              <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+              <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Mode</th><th>Action</th></tr>
             </thead>
-            <tbody id="queueBody"></tbody>
+            <tbody id="forwardBody"></tbody>
           </table>
-          <div class="error" id="queueError"></div>
         </div>
       </section>
     </div>
+
+    <section class="card">
+      <h2>Delivery Queue</h2>
+      <div class="body">
+        <div class="toolbar">
+          <label>Status Filter
+            <select id="queueStatusFilter">
+              <option value="All">All</option>
+              <option>Pending</option>
+              <option>InProgress</option>
+              <option>RetryScheduled</option>
+              <option>Succeeded</option>
+              <option>Failed</option>
+              <option>Canceled</option>
+            </select>
+          </label>
+          <button class="refresh" id="refreshQueue">Refresh Queue</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <table>
+              <thead>
+                <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+              </thead>
+              <tbody id="queueBody"></tbody>
+            </table>
+            <div class="error" id="queueError"></div>
+          </div>
+          <div class="details-panel">
+            <h3>Selected Work Item</h3>
+            <div class="hint">Choose Details on a work item to inspect attempt history.</div>
+            <div id="queueDetails" class="muted">No work item selected.</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
     const el = (id) => document.getElementById(id);
+    const state = {
+      rules: [],
+      folderDestinations: [],
+      forwardDestinations: [],
+      workItems: [],
+      editingRuleId: null,
+      editingFolderId: null,
+      editingForwardId: null
+    };
 
     async function fetchJson(url, options) {
-      const res = await fetch(url, options);
+      const response = await fetch(url, options);
       let payload = null;
-      try { payload = await res.json(); } catch (_) {}
-      if (!res.ok) {
-        const detail = payload ? JSON.stringify(payload) : res.statusText;
+      try { payload = await response.json(); } catch (_) {}
+
+      if (!response.ok) {
+        const detail = payload ? JSON.stringify(payload) : response.statusText;
         throw new Error(detail);
       }
+
       return payload;
     }
 
     function statusPill(status) {
-      const cls = status === 'Succeeded' ? 'ok' : (status === 'Failed' || status === 'Canceled' ? 'bad' : 'warn');
-      return '<span class="pill ' + cls + '">' + status + '</span>';
+      const normalized = String(status);
+      const className = normalized === 'Succeeded' || normalized === 'Enabled'
+        ? 'ok'
+        : (normalized === 'Failed' || normalized === 'Canceled' || normalized === 'Disabled' ? 'bad' : 'warn');
+      return '<span class="pill ' + className + '">' + normalized + '</span>';
+    }
+
+    function ruleName(ruleId) {
+      const rule = state.rules.find(x => x.id === ruleId);
+      return rule ? rule.name : ('Rule #' + ruleId);
+    }
+
+    function setSelectOptions(selectId) {
+      const html = state.rules.map(rule => '<option value="' + rule.id + '">' + rule.name + '</option>').join('');
+      el(selectId).innerHTML = html || '<option value="">No rules available</option>';
+    }
+
+    function flattenDestinations() {
+      state.folderDestinations = state.rules.flatMap(rule => (rule.folderDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
+      state.forwardDestinations = state.rules.flatMap(rule => (rule.forwardDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
+    }
+
+    function renderRules() {
+      el('rulesBody').innerHTML = state.rules.map(rule => {
+        const folderCount = (rule.folderDestinations || []).length;
+        const forwardCount = (rule.forwardDestinations || []).length;
+        return '<tr>' +
+          '<td>' + rule.priority + '</td>' +
+          '<td>' + rule.name + '</td>' +
+          '<td>' + rule.queueMatchType + ': ' + (rule.queueMatchValue || '(none)') + '</td>' +
+          '<td>' + folderCount + ' folder / ' + forwardCount + ' forward</td>' +
+          '<td>' + statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editRule(' + rule.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteRule(' + rule.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderFolderDestinations() {
+      el('folderBody').innerHTML = state.folderDestinations.map(dest =>
+        '<tr>' +
+          '<td>' + dest.ruleName + '</td>' +
+          '<td>' + dest.rootFolder + '</td>' +
+          '<td>' + dest.subfolderPatternType + ': ' + dest.subfolderPattern + '</td>' +
+          '<td>' + dest.duplicatePolicy + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editFolder(' + dest.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteFolder(' + dest.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function renderForwardDestinations() {
+      el('forwardBody').innerHTML = state.forwardDestinations.map(dest =>
+        '<tr>' +
+          '<td>' + dest.ruleName + '</td>' +
+          '<td>' + dest.host + ':' + dest.port + '</td>' +
+          '<td>' + dest.outboundQueueName + '</td>' +
+          '<td>' + dest.compressMode + ' / ' + dest.payloadMode + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editForward(' + dest.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteForward(' + dest.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function renderQueue() {
+      const filter = el('queueStatusFilter').value;
+      const filtered = filter === 'All' ? state.workItems : state.workItems.filter(item => item.status === filter);
+      el('queueBody').innerHTML = filtered.map(item =>
+        '<tr>' +
+          '<td>' + statusPill(item.status) + '</td>' +
+          '<td>' + item.destinationType + ' #' + item.destinationId + '</td>' +
+          '<td>' + item.attemptCount + '</td>' +
+          '<td>' + new Date(item.nextAttemptUtc).toLocaleString() + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="showDetails(\'' + item.id + '\')">Details</button>' +
+            '<button onclick="retryItem(\'' + item.id + '\')">Retry</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function resetRuleForm() {
+      state.editingRuleId = null;
+      el('ruleName').value = 'New Rule';
+      el('rulePriority').value = 100;
+      el('queueType').value = 'Exact';
+      el('queueValue').value = 'main';
+      el('matchOperator').value = 'And';
+      el('ruleEnabled').value = 'true';
+    }
+
+    function resetFolderForm() {
+      state.editingFolderId = null;
+      el('folderOrder').value = 1;
+      el('folderRoot').value = 'data/routed';
+      el('folderPatternType').value = 'DotNetDateFormat';
+      el('folderPattern').value = 'yyyy/MM/dd';
+      el('folderDuplicatePolicy').value = 'UniqueName';
+      el('folderUniqueNameMode').value = 'Counter';
+      el('folderUniqueAffix').value = '';
+      el('folderEnabled').value = 'true';
+      el('folderRetryOnFailure').value = 'true';
+    }
+
+    function resetForwardForm() {
+      state.editingForwardId = null;
+      el('forwardOrder').value = 1;
+      el('forwardHost').value = '127.0.0.1';
+      el('forwardPort').value = 515;
+      el('forwardQueue').value = 'remote-queue';
+      el('forwardCompression').value = 'None';
+      el('forwardPayloadMode').value = 'StoredFile';
+      el('forwardEnabled').value = 'true';
     }
 
     async function loadRules() {
       try {
         el('ruleError').textContent = '';
         const rules = await fetchJson('/api/rules');
-        el('rulesBody').innerHTML = rules.map(r =>
-          '<tr>' +
-          '<td>' + r.priority + '</td>' +
-          '<td>' + r.name + '</td>' +
-          '<td>' + (r.queueMatchType + ': ' + (r.queueMatchValue || '(none)')) + '</td>' +
-          '<td>' + statusPill(r.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
-          '</tr>'
-        ).join('');
+        state.rules = rules;
+        flattenDestinations();
+        setSelectOptions('folderRuleId');
+        setSelectOptions('forwardRuleId');
+        renderRules();
+        renderFolderDestinations();
+        renderForwardDestinations();
       } catch (err) {
         el('ruleError').textContent = 'Failed loading rules: ' + err.message;
       }
     }
 
-    async function createRule() {
+    async function saveRule() {
       const request = {
         name: el('ruleName').value,
         priority: Number(el('rulePriority').value),
-        isEnabled: true,
-        matchOperator: 'And',
+        isEnabled: el('ruleEnabled').value === 'true',
+        matchOperator: el('matchOperator').value,
         queueMatchType: el('queueType').value,
-        queueMatchValue: el('queueValue').value,
+        queueMatchValue: el('queueValue').value || null,
         sourceIpCidr: null,
         virtualPrinterId: null,
         stopProcessingOnMatch: false
@@ -252,32 +563,135 @@
 
       try {
         el('ruleError').textContent = '';
-        await fetchJson('/api/rules', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request)
-        });
+        if (state.editingRuleId) {
+          await fetchJson('/api/rules/' + state.editingRuleId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        } else {
+          await fetchJson('/api/rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        }
+
+        resetRuleForm();
         await loadRules();
       } catch (err) {
-        el('ruleError').textContent = 'Create failed: ' + err.message;
+        el('ruleError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function saveFolder() {
+      const request = {
+        ruleId: Number(el('folderRuleId').value),
+        isEnabled: el('folderEnabled').value === 'true',
+        destinationOrder: Number(el('folderOrder').value),
+        rootFolder: el('folderRoot').value,
+        subfolderPatternType: el('folderPatternType').value,
+        subfolderPattern: el('folderPattern').value,
+        duplicatePolicy: el('folderDuplicatePolicy').value,
+        uniqueNameMode: el('folderUniqueNameMode').value,
+        uniqueNameAffix: el('folderUniqueAffix').value || null,
+        isQueueOnFailure: el('folderRetryOnFailure').value === 'true'
+      };
+
+      try {
+        el('folderError').textContent = '';
+        if (state.editingFolderId) {
+          await fetchJson('/api/folder-destinations/' + state.editingFolderId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        } else {
+          await fetchJson('/api/folder-destinations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        }
+
+        resetFolderForm();
+        await loadRules();
+      } catch (err) {
+        el('folderError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function saveForward() {
+      const request = {
+        ruleId: Number(el('forwardRuleId').value),
+        isEnabled: el('forwardEnabled').value === 'true',
+        destinationOrder: Number(el('forwardOrder').value),
+        host: el('forwardHost').value,
+        port: Number(el('forwardPort').value),
+        outboundQueueName: el('forwardQueue').value,
+        compressMode: el('forwardCompression').value,
+        payloadMode: el('forwardPayloadMode').value,
+        retryPolicyId: null
+      };
+
+      try {
+        el('forwardError').textContent = '';
+        if (state.editingForwardId) {
+          await fetchJson('/api/forward-destinations/' + state.editingForwardId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        } else {
+          await fetchJson('/api/forward-destinations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        }
+
+        resetForwardForm();
+        await loadRules();
+      } catch (err) {
+        el('forwardError').textContent = 'Save failed: ' + err.message;
       }
     }
 
     async function loadQueue() {
       try {
         el('queueError').textContent = '';
-        const items = await fetchJson('/api/delivery/work-items');
-        el('queueBody').innerHTML = items.map(item =>
-          '<tr>' +
-          '<td>' + statusPill(item.status) + '</td>' +
-          '<td>' + item.destinationType + ' #' + item.destinationId + '</td>' +
-          '<td>' + item.attemptCount + '</td>' +
-          '<td>' + new Date(item.nextAttemptUtc).toLocaleString() + '</td>' +
-          '<td><button onclick="retryItem(\'' + item.id + '\')">Retry Now</button></td>' +
-          '</tr>'
-        ).join('');
+        state.workItems = await fetchJson('/api/delivery/work-items');
+        renderQueue();
       } catch (err) {
         el('queueError').textContent = 'Failed loading queue: ' + err.message;
+      }
+    }
+
+    async function showDetails(id) {
+      try {
+        const item = await fetchJson('/api/delivery/work-items/' + id);
+        const attempts = item.attempts || [];
+        const attemptRows = attempts.length === 0
+          ? '<div class="muted">No attempts recorded yet.</div>'
+          : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' +
+            attempts.map(attempt =>
+              '<tr>' +
+                '<td>' + attempt.attemptNumber + '</td>' +
+                '<td>' + statusPill(attempt.outcome) + '</td>' +
+                '<td>' + new Date(attempt.startedUtc).toLocaleString() + '</td>' +
+                '<td>' + (attempt.errorMessage || '') + '</td>' +
+              '</tr>'
+            ).join('') +
+            '</tbody></table>';
+
+        el('queueDetails').innerHTML =
+          '<div><strong>Work Item:</strong> ' + item.id + '</div>' +
+          '<div><strong>Status:</strong> ' + statusPill(item.status) + '</div>' +
+          '<div><strong>Destination:</strong> ' + item.destinationType + ' #' + item.destinationId + '</div>' +
+          '<div><strong>Attempts:</strong> ' + item.attemptCount + '</div>' +
+          '<div style="margin-top:10px;">' + attemptRows + '</div>';
+      } catch (err) {
+        el('queueError').textContent = 'Failed loading details: ' + err.message;
       }
     }
 
@@ -285,16 +699,133 @@
       try {
         await fetchJson('/api/delivery/work-items/' + id + '/retry-now', { method: 'POST' });
         await loadQueue();
+        await showDetails(id);
       } catch (err) {
         el('queueError').textContent = 'Retry failed: ' + err.message;
       }
     }
 
-    window.retryItem = retryItem;
-    el('createRule').addEventListener('click', createRule);
-    el('refreshRules').addEventListener('click', loadRules);
-    el('refreshQueue').addEventListener('click', loadQueue);
+    async function deleteRule(id) {
+      if (!confirm('Delete this rule?')) {
+        return;
+      }
 
+      try {
+        await fetchJson('/api/rules/' + id, { method: 'DELETE' });
+        if (state.editingRuleId === id) {
+          resetRuleForm();
+        }
+        await loadRules();
+      } catch (err) {
+        el('ruleError').textContent = 'Delete failed: ' + err.message;
+      }
+    }
+
+    async function deleteFolder(id) {
+      if (!confirm('Delete this folder destination?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/folder-destinations/' + id, { method: 'DELETE' });
+        if (state.editingFolderId === id) {
+          resetFolderForm();
+        }
+        await loadRules();
+      } catch (err) {
+        el('folderError').textContent = 'Delete failed: ' + err.message;
+      }
+    }
+
+    async function deleteForward(id) {
+      if (!confirm('Delete this forward destination?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/forward-destinations/' + id, { method: 'DELETE' });
+        if (state.editingForwardId === id) {
+          resetForwardForm();
+        }
+        await loadRules();
+      } catch (err) {
+        el('forwardError').textContent = 'Delete failed: ' + err.message;
+      }
+    }
+
+    function editRule(id) {
+      const rule = state.rules.find(x => x.id === id);
+      if (!rule) {
+        return;
+      }
+
+      state.editingRuleId = id;
+      el('ruleName').value = rule.name;
+      el('rulePriority').value = rule.priority;
+      el('queueType').value = rule.queueMatchType;
+      el('queueValue').value = rule.queueMatchValue || '';
+      el('matchOperator').value = rule.matchOperator;
+      el('ruleEnabled').value = rule.isEnabled ? 'true' : 'false';
+    }
+
+    function editFolder(id) {
+      const dest = state.folderDestinations.find(x => x.id === id);
+      if (!dest) {
+        return;
+      }
+
+      state.editingFolderId = id;
+      el('folderRuleId').value = String(dest.ruleId);
+      el('folderOrder').value = dest.destinationOrder;
+      el('folderRoot').value = dest.rootFolder;
+      el('folderPatternType').value = dest.subfolderPatternType;
+      el('folderPattern').value = dest.subfolderPattern;
+      el('folderDuplicatePolicy').value = dest.duplicatePolicy;
+      el('folderUniqueNameMode').value = dest.uniqueNameMode || 'Counter';
+      el('folderUniqueAffix').value = dest.uniqueNameAffix || '';
+      el('folderEnabled').value = dest.isEnabled ? 'true' : 'false';
+      el('folderRetryOnFailure').value = dest.isQueueOnFailure ? 'true' : 'false';
+    }
+
+    function editForward(id) {
+      const dest = state.forwardDestinations.find(x => x.id === id);
+      if (!dest) {
+        return;
+      }
+
+      state.editingForwardId = id;
+      el('forwardRuleId').value = String(dest.ruleId);
+      el('forwardOrder').value = dest.destinationOrder;
+      el('forwardHost').value = dest.host;
+      el('forwardPort').value = dest.port;
+      el('forwardQueue').value = dest.outboundQueueName;
+      el('forwardCompression').value = dest.compressMode;
+      el('forwardPayloadMode').value = dest.payloadMode;
+      el('forwardEnabled').value = dest.isEnabled ? 'true' : 'false';
+    }
+
+    window.editRule = editRule;
+    window.deleteRule = deleteRule;
+    window.editFolder = editFolder;
+    window.deleteFolder = deleteFolder;
+    window.editForward = editForward;
+    window.deleteForward = deleteForward;
+    window.showDetails = showDetails;
+    window.retryItem = retryItem;
+
+    el('saveRule').addEventListener('click', saveRule);
+    el('resetRule').addEventListener('click', resetRuleForm);
+    el('refreshRules').addEventListener('click', loadRules);
+    el('saveFolder').addEventListener('click', saveFolder);
+    el('resetFolder').addEventListener('click', resetFolderForm);
+    el('saveForward').addEventListener('click', saveForward);
+    el('resetForward').addEventListener('click', resetForwardForm);
+    el('refreshQueue').addEventListener('click', loadQueue);
+    el('queueStatusFilter').addEventListener('change', renderQueue);
+
+    resetRuleForm();
+    resetFolderForm();
+    resetForwardForm();
     loadRules();
     loadQueue();
   </script>
