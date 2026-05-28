@@ -48,6 +48,7 @@ var normalizedConnectionString = SqliteDatabasePath.NormalizeConnectionString(da
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(normalizedConnectionString));
 
 builder.Services.AddSingleton<ListenerState>();
+builder.Services.AddSingleton<DeliveryPauseState>();
 builder.Services.AddSingleton<Sha256Hasher>();
 builder.Services.AddSingleton<FileStorageService>();
 builder.Services.AddSingleton<ControlFileMetadataParser>();
@@ -80,6 +81,14 @@ await using (var scope = app.Services.CreateAsyncScope())
     else
     {
         await db.Database.EnsureCreatedAsync();
+    }
+
+    // Restore delivery pause state from DB so a restart does not silently resume paused delivery
+    var pauseRecord = await db.DeliveryPauseState.FindAsync(1);
+    if (pauseRecord is { IsPaused: true })
+    {
+        var pauseState = app.Services.GetRequiredService<DeliveryPauseState>();
+        pauseState.Pause(pauseRecord.ResumeAtUtc, pauseRecord.Reason);
     }
 }
 

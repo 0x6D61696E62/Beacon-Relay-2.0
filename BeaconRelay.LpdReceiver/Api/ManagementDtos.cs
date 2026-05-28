@@ -58,3 +58,31 @@ public sealed record DeliveryWorkItemQueryResult(
     int PageSize,
     int TotalCount,
     int TotalPages);
+
+/// <summary>
+/// Request body for POST /api/delivery/pause.
+/// DurationMinutes = null means pause indefinitely.
+/// </summary>
+public sealed record PauseDeliveryRequest(
+    int? DurationMinutes,
+    string? Reason);
+
+/// <summary>
+/// Returned by GET /api/delivery/status.
+/// </summary>
+public sealed record DeliveryStatusResponse(
+    bool IsPaused,
+    DateTime? PausedAtUtc,
+    DateTime? ResumeAtUtc,
+    string? PauseReason,
+    bool IsListening,
+    DeliveryQueueStats QueueStats);
+
+public sealed record DeliveryQueueStats(
+    int Pending,
+    int InProgress,
+    int RetryScheduled,
+    int Succeeded,
+    int Failed,
+    int Canceled,
+    int Total);

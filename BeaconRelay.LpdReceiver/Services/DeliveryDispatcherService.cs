@@ -5,6 +5,7 @@ namespace BeaconRelay.LpdReceiver.Services;
 
 public sealed class DeliveryDispatcherService(
     IServiceScopeFactory scopeFactory,
+    DeliveryPauseState pauseState,
     ILogger<DeliveryDispatcherService> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
@@ -16,6 +17,12 @@ public sealed class DeliveryDispatcherService(
         {
             try
             {
+                if (pauseState.IsPaused)
+                {
+                    await Task.Delay(PollInterval, stoppingToken);
+                    continue;
+                }
+
                 var processedAny = await ProcessOneCycleAsync(stoppingToken);
                 if (!processedAny)
                 {

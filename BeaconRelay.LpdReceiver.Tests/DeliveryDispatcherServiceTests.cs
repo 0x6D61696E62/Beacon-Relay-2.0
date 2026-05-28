@@ -84,7 +84,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -184,7 +184,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -284,7 +284,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -388,7 +388,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);

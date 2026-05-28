@@ -375,6 +375,85 @@
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; }
     }
+
+    /* ── Status page ─────────────────────────────────────────────── */
+    .status-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .stat-strip {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+
+    .stat-box {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .stat-box .count {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .stat-box .label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .stat-box.ok   .count { color: var(--ok); }
+    .stat-box.bad  .count { color: var(--bad); }
+    .stat-box.warn .count { color: var(--warn); }
+    .stat-box.dim  .count { color: var(--ink-soft); }
+
+    .dispatcher-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }
+
+    .dispatcher-badge.running {
+      background: #d3f4e7;
+      color: var(--ok);
+    }
+
+    .dispatcher-badge.paused {
+      background: #fdeec9;
+      color: var(--warn);
+    }
+
+    .dispatcher-badge .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .pause-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 12px;
+    }
+
+    .pause-row label { flex: 1 1 160px; }
   </style>
 </head>
 <body>
@@ -399,6 +478,7 @@
           <button data-view-target="folder">Folder Routing</button>
           <button data-view-target="lpd">LPD Forwarding</button>
           <button data-view-target="delivery">Delivery Queue</button>
+          <button data-view-target="status">System Status</button>
         </div>
       </aside>
 
@@ -658,6 +738,84 @@
             </div>
           </section>
         </section>
+
+        <!-- ── Status Page ───────────────────────────────────────── -->
+        <section class="view-section" data-view="status">
+          <div class="status-grid">
+
+            <!-- Dispatcher State + Pause Controls -->
+            <section class="card">
+              <h2>Delivery Dispatcher</h2>
+              <div class="body">
+                <div id="dispatcherBadge" class="dispatcher-badge running">
+                  <span class="dot"></span>
+                  <span id="dispatcherLabel">Running</span>
+                </div>
+                <div id="dispatcherMeta" class="muted" style="margin-bottom:12px;"></div>
+
+                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+
+                <h3 style="margin-bottom:10px;font-size:0.95rem;">Pause Delivery</h3>
+                <div class="pause-row">
+                  <label>Duration
+                    <select id="pauseDuration">
+                      <option value="">Indefinitely (manual resume)</option>
+                      <option value="15">15 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="120">2 hours</option>
+                      <option value="240">4 hours</option>
+                      <option value="480">8 hours</option>
+                      <option value="1440">24 hours</option>
+                    </select>
+                  </label>
+                  <label>Reason (optional)
+                    <input id="pauseReason" placeholder="e.g. scheduled maintenance">
+                  </label>
+                </div>
+                <div class="toolbar" style="margin-top:12px;">
+                  <button class="primary" id="pauseBtn">Pause Delivery</button>
+                  <button id="resumeBtn">Resume Now</button>
+                  <button class="refresh" id="refreshStatus">Refresh</button>
+                </div>
+                <div class="error" id="statusError" style="margin-top:8px;"></div>
+              </div>
+            </section>
+
+            <!-- Queue Statistics -->
+            <section class="card">
+              <h2>Queue Statistics</h2>
+              <div class="body">
+                <div class="stat-strip" id="queueStatStrip">
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Pending</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">In Progress</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Retry Scheduled</div></div>
+                  <div class="stat-box ok"><div class="count">–</div><div class="label">Succeeded</div></div>
+                  <div class="stat-box bad"><div class="count">–</div><div class="label">Failed</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Canceled</div></div>
+                </div>
+                <div style="margin-top:14px;">
+                  <span class="muted">Total work items: </span>
+                  <strong id="queueStatTotal">–</strong>
+                </div>
+              </div>
+            </section>
+
+            <!-- LPD Listener -->
+            <section class="card">
+              <h2>LPD Listener</h2>
+              <div class="body">
+                <div id="listenerBadge" class="dispatcher-badge running">
+                  <span class="dot"></span>
+                  <span id="listenerLabel">Listening</span>
+                </div>
+                <div id="listenerMeta" class="muted"></div>
+              </div>
+            </section>
+
+          </div>
+        </section>
+
       </div>
     </div>
   </main>
@@ -1129,6 +1287,94 @@
       window.location.href = '/login.html';
     }
 
+    // ── Status page ────────────────────────────────────────────────
+
+    function renderStatus(status) {
+      const isPaused = status.isPaused;
+
+      // Dispatcher badge
+      const badge = el('dispatcherBadge');
+      badge.className = 'dispatcher-badge ' + (isPaused ? 'paused' : 'running');
+      el('dispatcherLabel').textContent = isPaused ? 'Paused' : 'Running';
+
+      // Meta line
+      let meta = '';
+      if (isPaused) {
+        if (status.pausedAtUtc) {
+          meta += 'Paused since ' + new Date(status.pausedAtUtc).toLocaleString();
+        }
+        if (status.resumeAtUtc) {
+          meta += ' · Resumes at ' + new Date(status.resumeAtUtc).toLocaleString();
+        } else {
+          meta += ' · No automatic resume scheduled';
+        }
+        if (status.pauseReason) {
+          meta += '\nReason: ' + status.pauseReason;
+        }
+      } else {
+        meta = 'Dispatching delivery work items normally.';
+      }
+      el('dispatcherMeta').textContent = meta;
+
+      // Queue stats
+      const qs = status.queueStats || {};
+      const strip = el('queueStatStrip');
+      const boxes = strip.querySelectorAll('.stat-box');
+      const vals = [qs.pending, qs.inProgress, qs.retryScheduled, qs.succeeded, qs.failed, qs.canceled];
+      vals.forEach((v, i) => {
+        boxes[i].querySelector('.count').textContent = v != null ? String(v) : '–';
+      });
+      el('queueStatTotal').textContent = qs.total != null ? String(qs.total) : '–';
+
+      // Listener badge
+      const listenerBadge = el('listenerBadge');
+      listenerBadge.className = 'dispatcher-badge ' + (status.isListening ? 'running' : 'paused');
+      el('listenerLabel').textContent = status.isListening ? 'Listening' : 'Not Listening';
+      el('listenerMeta').textContent = status.isListening
+        ? 'LPD port is accepting connections.'
+        : 'LPD listener is stopped or encountered an error.';
+    }
+
+    async function loadStatus() {
+      try {
+        el('statusError').textContent = '';
+        const status = await fetchJson('/api/delivery/status');
+        renderStatus(status);
+      } catch (err) {
+        el('statusError').textContent = 'Failed loading status: ' + err.message;
+      }
+    }
+
+    async function pauseDelivery() {
+      try {
+        el('statusError').textContent = '';
+        const durationStr = el('pauseDuration').value;
+        const reason = el('pauseReason').value.trim() || null;
+        const request = {
+          durationMinutes: durationStr ? Number(durationStr) : null,
+          reason: reason
+        };
+        await fetchJson('/api/delivery/pause', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+        await loadStatus();
+      } catch (err) {
+        el('statusError').textContent = 'Pause failed: ' + err.message;
+      }
+    }
+
+    async function resumeDelivery() {
+      try {
+        el('statusError').textContent = '';
+        await fetchJson('/api/delivery/resume', { method: 'POST' });
+        await loadStatus();
+      } catch (err) {
+        el('statusError').textContent = 'Resume failed: ' + err.message;
+      }
+    }
+
     window.moveRule = moveRule;
     window.editRule = editRule;
     window.editFolder = editFolder;
@@ -1152,6 +1398,7 @@
       button.addEventListener('click', () => {
         const target = button.getAttribute('data-view-target') || 'rules';
         setActiveView(target);
+        if (target === 'status') { loadStatus(); }
       });
     });
 
@@ -1170,6 +1417,9 @@
     el('prevPage').addEventListener('click', async () => { if (state.queuePage > 1) { state.queuePage -= 1; await loadQueue(); } });
     el('nextPage').addEventListener('click', async () => { if (state.queuePage < state.queueTotalPages) { state.queuePage += 1; await loadQueue(); } });
     el('logoutButton').addEventListener('click', logout);
+    el('pauseBtn').addEventListener('click', pauseDelivery);
+    el('resumeBtn').addEventListener('click', resumeDelivery);
+    el('refreshStatus').addEventListener('click', loadStatus);
 
     (async function init() {
       resetRuleForm();

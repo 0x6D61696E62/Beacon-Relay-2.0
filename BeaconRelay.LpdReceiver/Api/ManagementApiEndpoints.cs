@@ -1,4 +1,5 @@
 using BeaconRelay.LpdReceiver.Data;
+using BeaconRelay.LpdReceiver.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaconRelay.LpdReceiver.Api;
@@ -32,6 +33,9 @@ public static class ManagementApiEndpoints
         delivery.MapGet("/work-items/{id:guid}", GetDeliveryWorkItemByIdAsync);
         delivery.MapPost("/work-items/{id:guid}/retry-now", RetryDeliveryWorkItemNowAsync);
         delivery.MapPost("/work-items/{id:guid}/cancel", CancelDeliveryWorkItemAsync);
+        delivery.MapGet("/status", GetDeliveryStatusAsync);
+        delivery.MapPost("/pause", PauseDeliveryAsync);
+        delivery.MapPost("/resume", ResumeDeliveryAsync);
 
         var retryPolicies = api.MapGroup("/retry-policies");
         retryPolicies.MapGet("/", GetRetryPoliciesAsync);
@@ -431,6 +435,106 @@ public static class ManagementApiEndpoints
 
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(item);
+    }
+
+    private static async Task<IResult> GetDeliveryStatusAsync(
+        AppDbContext db,
+        DeliveryPauseState pauseState,
+        ListenerState listenerState,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = pauseState.Snapshot;
+
+        var stats = await db.DeliveryWorkItems
+            .AsNoTracking()
+            .GroupBy(_ => true)
+            .Select(g => new
+            {
+                Pending = g.Count(x => x.Status == DeliveryWorkItemStatus.Pending),
+                InProgress = g.Count(x => x.Status == DeliveryWorkItemStatus.InProgress),
+                RetryScheduled = g.Count(x => x.Status == DeliveryWorkItemStatus.RetryScheduled),
+                Succeeded = g.Count(x => x.Status == DeliveryWorkItemStatus.Succeeded),
+                Failed = g.Count(x => x.Status == DeliveryWorkItemStatus.Failed),
+                Canceled = g.Count(x => x.Status == DeliveryWorkItemStatus.Canceled),
+                Total = g.Count()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var queueStats = stats is null
+            ? new DeliveryQueueStats(0, 0, 0, 0, 0, 0, 0)
+            : new DeliveryQueueStats(
+                stats.Pending,
+                stats.InProgress,
+                stats.RetryScheduled,
+                stats.Succeeded,
+                stats.Failed,
+                stats.Canceled,
+                stats.Total);
+
+        return Results.Ok(new DeliveryStatusResponse(
+            snapshot.IsPaused,
+            snapshot.PausedAtUtc,
+            snapshot.ResumeAtUtc,
+            snapshot.Reason,
+            listenerState.IsListening,
+            queueStats));
+    }
+
+    private static async Task<IResult> PauseDeliveryAsync(
+        PauseDeliveryRequest input,
+        AppDbContext db,
+        DeliveryPauseState pauseState,
+        CancellationToken cancellationToken)
+    {
+        if (input.DurationMinutes.HasValue && input.DurationMinutes.Value <= 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                [nameof(input.DurationMinutes)] = ["DurationMinutes must be greater than 0 when specified."]
+            });
+        }
+
+        var resumeAt = input.DurationMinutes.HasValue
+            ? DateTime.UtcNow.AddMinutes(input.DurationMinutes.Value)
+            : (DateTime?)null;
+
+        pauseState.Pause(resumeAt, input.Reason);
+
+        // Persist across restarts
+        var record = await db.DeliveryPauseState.FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        if (record is null)
+        {
+            record = new DeliveryPauseRecord { Id = 1 };
+            db.DeliveryPauseState.Add(record);
+        }
+
+        record.IsPaused = true;
+        record.PausedAtUtc = pauseState.PausedAtUtc;
+        record.ResumeAtUtc = resumeAt;
+        record.Reason = input.Reason;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(pauseState.Snapshot);
+    }
+
+    private static async Task<IResult> ResumeDeliveryAsync(
+        AppDbContext db,
+        DeliveryPauseState pauseState,
+        CancellationToken cancellationToken)
+    {
+        pauseState.Resume();
+
+        var record = await db.DeliveryPauseState.FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        if (record is not null)
+        {
+            record.IsPaused = false;
+            record.ResumeAtUtc = null;
+            record.PausedAtUtc = null;
+            record.Reason = null;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return Results.Ok(pauseState.Snapshot);
     }
 
     private static async Task<IResult> GetPurgePoliciesAsync(AppDbContext db, CancellationToken cancellationToken)
