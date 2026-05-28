@@ -13,6 +13,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<DeliveryWorkItemRecord> DeliveryWorkItems => Set<DeliveryWorkItemRecord>();
     public DbSet<DeliveryAttemptRecord> DeliveryAttempts => Set<DeliveryAttemptRecord>();
     public DbSet<PurgePolicyRecord> PurgePolicies => Set<PurgePolicyRecord>();
+    public DbSet<RetentionSettingsRecord> RetentionSettings => Set<RetentionSettingsRecord>();
     public DbSet<DeliveryPauseRecord> DeliveryPauseState => Set<DeliveryPauseRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -165,5 +166,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         var pauseState = modelBuilder.Entity<DeliveryPauseRecord>();
         pauseState.HasKey(x => x.Id);
         pauseState.Property(x => x.Reason).HasMaxLength(512);
+
+        var retentionSettings = modelBuilder.Entity<RetentionSettingsRecord>();
+        retentionSettings.HasKey(x => x.Id);
     }
 }

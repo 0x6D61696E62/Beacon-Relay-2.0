@@ -43,6 +43,10 @@ public static class ManagementApiEndpoints
         var purge = api.MapGroup("/purge-policies");
         purge.MapGet("/", GetPurgePoliciesAsync);
         purge.MapPut("/{id:int}", UpdatePurgePolicyAsync);
+
+        var retention = api.MapGroup("/retention-settings");
+        retention.MapGet("/", GetRetentionSettingsAsync);
+        retention.MapPut("/", UpdateRetentionSettingsAsync);
     }
 
     private static async Task<IResult> GetRulesAsync(AppDbContext db, CancellationToken cancellationToken)
@@ -577,6 +581,37 @@ public static class ManagementApiEndpoints
         return Results.Ok(data);
     }
 
+    private static async Task<IResult> GetRetentionSettingsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var settings = await db.RetentionSettings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == 1, cancellationToken)
+            ?? new RetentionSettingsRecord();
+        return Results.Ok(settings);
+    }
+
+    private static async Task<IResult> UpdateRetentionSettingsAsync(RetentionSettingsUpdateRequest input, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var errors = ValidateRetentionSettings(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var settings = await db.RetentionSettings.FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        if (settings is null)
+        {
+            settings = new RetentionSettingsRecord { Id = 1, CreatedUtc = DateTime.UtcNow };
+            db.RetentionSettings.Add(settings);
+        }
+
+        settings.IsEnabled = input.IsEnabled;
+        settings.RetentionDays = input.RetentionDays;
+        settings.IntervalMinutes = input.IntervalMinutes;
+        settings.UpdatedUtc = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(settings);
+    }
+
     private static async Task<IResult> UpdatePurgePolicyAsync(int id, PurgePolicyUpdateRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidatePurgePolicy(input);
@@ -701,6 +736,23 @@ public static class ManagementApiEndpoints
             && !string.Equals(input.PayloadMode, ForwardPayloadMode.StoredFile, StringComparison.OrdinalIgnoreCase))
         {
             errors[nameof(input.PayloadMode)] = ["PayloadMode must be OriginalFile or StoredFile."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateRetentionSettings(RetentionSettingsUpdateRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (input.RetentionDays < 1)
+        {
+            errors[nameof(input.RetentionDays)] = ["RetentionDays must be at least 1."];
+        }
+
+        if (input.IntervalMinutes < 1)
+        {
+            errors[nameof(input.IntervalMinutes)] = ["IntervalMinutes must be at least 1."];
         }
 
         return errors;

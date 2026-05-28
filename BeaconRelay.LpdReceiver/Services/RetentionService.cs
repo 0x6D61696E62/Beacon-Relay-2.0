@@ -1,16 +1,13 @@
 using BeaconRelay.LpdReceiver.Data;
-using BeaconRelay.LpdReceiver.Options;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace BeaconRelay.LpdReceiver.Services;
 
 public sealed class RetentionService(
     IServiceScopeFactory scopeFactory,
-    IOptions<RetentionOptions> options,
     ILogger<RetentionService> logger) : BackgroundService
 {
-    private readonly RetentionOptions _options = options.Value;
+    private static readonly TimeSpan FallbackInterval = TimeSpan.FromMinutes(60);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -18,10 +15,14 @@ public sealed class RetentionService(
         {
             try
             {
-                if (_options.Enabled)
+                var settings = await GetRetentionSettingsAsync(stoppingToken);
+                if (settings.IsEnabled)
                 {
-                    await CleanupAsync(stoppingToken);
+                    await CleanupAsync(settings.RetentionDays, stoppingToken);
                 }
+
+                var delay = TimeSpan.FromMinutes(Math.Max(1, settings.IntervalMinutes));
+                await Task.Delay(delay, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -30,15 +31,40 @@ public sealed class RetentionService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Retention cleanup failed.");
+                await Task.Delay(FallbackInterval, stoppingToken);
             }
-
-            await Task.Delay(TimeSpan.FromMinutes(Math.Max(1, _options.IntervalMinutes)), stoppingToken);
         }
     }
 
-    private async Task CleanupAsync(CancellationToken cancellationToken)
+    private async Task<RetentionSettingsRecord> GetRetentionSettingsAsync(CancellationToken cancellationToken)
     {
-        var cutoffUtc = DateTime.UtcNow.AddDays(-Math.Max(1, _options.RetentionDays));
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var settings = await db.RetentionSettings.FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        if (settings is not null)
+        {
+            return settings;
+        }
+
+        var seed = new RetentionSettingsRecord
+        {
+            Id = 1,
+            IsEnabled = true,
+            RetentionDays = 30,
+            IntervalMinutes = 60,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+
+        db.RetentionSettings.Add(seed);
+        await db.SaveChangesAsync(cancellationToken);
+        return seed;
+    }
+
+    private async Task CleanupAsync(int retentionDays, CancellationToken cancellationToken)
+    {
+        var cutoffUtc = DateTime.UtcNow.AddDays(-Math.Max(1, retentionDays));
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 

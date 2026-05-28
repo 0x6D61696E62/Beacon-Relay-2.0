@@ -44,6 +44,11 @@ public sealed record PurgePolicyUpdateRequest(
     string? TerminalStatusesCsv,
     int IntervalMinutes);
 
+public sealed record RetentionSettingsUpdateRequest(
+    bool IsEnabled,
+    int RetentionDays,
+    int IntervalMinutes);
+
 public sealed record AdminLoginRequest(
     string Username,
     string Password,

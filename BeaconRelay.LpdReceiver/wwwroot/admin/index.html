@@ -475,6 +475,7 @@
         <div class="hint">Select a module to configure and save.</div>
         <div class="nav-links">
           <button class="active" data-view-target="status">System Status</button>
+          <button data-view-target="retention">Retention & Purge</button>
           <button data-view-target="rules">Rules and Matching</button>
           <button data-view-target="folder">Folder Routing</button>
           <button data-view-target="lpd">LPD Forwarding</button>
@@ -745,6 +746,80 @@
           </section>
         </section>
 
+        <section class="view-section" data-view="retention">
+          <section class="card">
+            <h2>Retention Cleanup Settings</h2>
+            <div class="body">
+              <div class="row-3">
+                <label>Enabled
+                  <select id="retentionEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Retention Days
+                  <input id="retentionDays" type="number" min="1" value="30">
+                </label>
+                <label>Run Interval (minutes)
+                  <input id="retentionInterval" type="number" min="1" value="60">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveRetention">Save Retention Settings</button>
+                <button class="refresh" id="refreshRetention">Refresh</button>
+              </div>
+              <div class="error" id="retentionError"></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Purge Policies</h2>
+            <div class="body">
+              <div class="hint">Policies are stored in the database and applied by the retention service.</div>
+              <div class="row-3">
+                <label>Policy
+                  <select id="purgePolicyId"></select>
+                </label>
+                <label>Enabled
+                  <select id="purgeEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Retention Days
+                  <input id="purgeRetentionDays" type="number" min="1" value="30">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Apply To
+                  <select id="purgeApplyTo">
+                    <option>DeliveryAttempts</option>
+                    <option>DeliveryWorkItemsTerminal</option>
+                  </select>
+                </label>
+                <label>Interval Minutes
+                  <input id="purgeIntervalMinutes" type="number" min="1" value="60">
+                </label>
+                <label>Terminal Statuses CSV
+                  <input id="purgeTerminalStatuses" placeholder="Succeeded,Failed,Canceled">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="savePurgePolicy">Save Policy</button>
+                <button id="resetPurgePolicy">Reset</button>
+              </div>
+              <div class="error" id="purgeError"></div>
+
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Apply To</th><th>Retention</th><th>Interval</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="purgeBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
         <!-- ── Status Page ───────────────────────────────────────── -->
         <section class="view-section active" data-view="status">
           <div class="status-grid">
@@ -848,10 +923,13 @@
       folderDestinations: [],
       forwardDestinations: [],
       retryPolicies: [],
+      purgePolicies: [],
+      retentionSettings: null,
       workItems: [],
       editingRuleId: null,
       editingFolderId: null,
       editingForwardId: null,
+      editingPurgePolicyId: null,
       queuePage: 1,
       queueTotalPages: 1,
       queueSelectedId: null
@@ -1054,6 +1132,124 @@
       state.retryPolicies = await fetchJson('/api/retry-policies');
       setRetryPolicyOptions('folderRetryPolicyId');
       setRetryPolicyOptions('forwardRetryPolicyId');
+    }
+
+    function setPurgePolicyOptions() {
+      const html = state.purgePolicies.map(policy => '<option value="' + policy.id + '">' + policy.name + '</option>').join('');
+      el('purgePolicyId').innerHTML = html || '<option value="">No purge policies</option>';
+    }
+
+    function renderPurgePolicies() {
+      el('purgeBody').innerHTML = state.purgePolicies.map(policy =>
+        '<tr>' +
+          '<td>' + policy.name + '</td>' +
+          '<td>' + policy.applyTo + '</td>' +
+          '<td>' + policy.retentionDays + ' days</td>' +
+          '<td>' + policy.intervalMinutes + ' min</td>' +
+          '<td>' + statusPill(policy.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td class="actions"><button onclick="editPurgePolicy(' + policy.id + ')">Edit</button></td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function resetPurgePolicyForm() {
+      state.editingPurgePolicyId = null;
+      if (state.purgePolicies.length === 0) {
+        el('purgePolicyId').value = '';
+        el('purgeEnabled').value = 'true';
+        el('purgeApplyTo').value = 'DeliveryAttempts';
+        el('purgeRetentionDays').value = 30;
+        el('purgeIntervalMinutes').value = 60;
+        el('purgeTerminalStatuses').value = '';
+        return;
+      }
+
+      const first = state.purgePolicies[0];
+      state.editingPurgePolicyId = first.id;
+      el('purgePolicyId').value = String(first.id);
+      el('purgeEnabled').value = first.isEnabled ? 'true' : 'false';
+      el('purgeApplyTo').value = first.applyTo;
+      el('purgeRetentionDays').value = first.retentionDays;
+      el('purgeIntervalMinutes').value = first.intervalMinutes;
+      el('purgeTerminalStatuses').value = first.terminalStatusesCsv || '';
+    }
+
+    function editPurgePolicy(id) {
+      const policy = state.purgePolicies.find(x => x.id === id);
+      if (!policy) return;
+
+      state.editingPurgePolicyId = id;
+      el('purgePolicyId').value = String(policy.id);
+      el('purgeEnabled').value = policy.isEnabled ? 'true' : 'false';
+      el('purgeApplyTo').value = policy.applyTo;
+      el('purgeRetentionDays').value = policy.retentionDays;
+      el('purgeIntervalMinutes').value = policy.intervalMinutes;
+      el('purgeTerminalStatuses').value = policy.terminalStatusesCsv || '';
+    }
+
+    async function loadRetentionSettings() {
+      const settings = await fetchJson('/api/retention-settings');
+      state.retentionSettings = settings;
+
+      el('retentionEnabled').value = settings.isEnabled ? 'true' : 'false';
+      el('retentionDays').value = settings.retentionDays;
+      el('retentionInterval').value = settings.intervalMinutes;
+    }
+
+    async function saveRetentionSettings() {
+      try {
+        el('retentionError').textContent = '';
+
+        await fetchJson('/api/retention-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isEnabled: el('retentionEnabled').value === 'true',
+            retentionDays: Number(el('retentionDays').value),
+            intervalMinutes: Number(el('retentionInterval').value)
+          })
+        });
+
+        await loadRetentionSettings();
+      } catch (err) {
+        el('retentionError').textContent = 'Failed saving retention settings: ' + err.message;
+      }
+    }
+
+    async function loadPurgePolicies() {
+      state.purgePolicies = await fetchJson('/api/purge-policies');
+      setPurgePolicyOptions();
+      renderPurgePolicies();
+      resetPurgePolicyForm();
+    }
+
+    async function savePurgePolicy() {
+      try {
+        el('purgeError').textContent = '';
+
+        const selectedId = Number(el('purgePolicyId').value);
+        const id = state.editingPurgePolicyId || selectedId;
+        if (!id) {
+          el('purgeError').textContent = 'No purge policy selected.';
+          return;
+        }
+
+        await fetchJson('/api/purge-policies/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isEnabled: el('purgeEnabled').value === 'true',
+            applyTo: el('purgeApplyTo').value,
+            retentionDays: Number(el('purgeRetentionDays').value),
+            terminalStatusesCsv: el('purgeTerminalStatuses').value.trim() || null,
+            intervalMinutes: Number(el('purgeIntervalMinutes').value)
+          })
+        });
+
+        await loadPurgePolicies();
+      } catch (err) {
+        el('purgeError').textContent = 'Failed saving purge policy: ' + err.message;
+      }
     }
 
     async function loadRules() {
@@ -1347,7 +1543,12 @@
     }
 
     async function logout() {
-      await fetchJson('/auth/logout', { method: 'POST' });
+      try {
+        await fetchJson('/auth/logout', { method: 'POST' });
+      } catch (_) {
+        // Redirect anyway so the user can re-authenticate even if logout call fails.
+      }
+
       window.location.href = '/login.html';
     }
 
@@ -1460,6 +1661,7 @@
     window.deleteForward = deleteForward;
     window.showDetails = showDetails;
     window.retryItem = retryItem;
+    window.editPurgePolicy = editPurgePolicy;
 
     function setActiveView(viewName) {
       document.querySelectorAll('[data-view]').forEach(section => {
@@ -1475,6 +1677,10 @@
         const target = button.getAttribute('data-view-target') || 'rules';
         setActiveView(target);
         if (target === 'status') { loadStatus(); }
+        if (target === 'retention') {
+          loadRetentionSettings();
+          loadPurgePolicies();
+        }
       });
     });
 
@@ -1486,6 +1692,19 @@
     el('resetFolder').addEventListener('click', resetFolderForm);
     el('saveForward').addEventListener('click', saveForward);
     el('resetForward').addEventListener('click', resetForwardForm);
+    el('saveRetention').addEventListener('click', saveRetentionSettings);
+    el('refreshRetention').addEventListener('click', async () => {
+      await loadRetentionSettings();
+      await loadPurgePolicies();
+    });
+    el('purgePolicyId').addEventListener('change', () => {
+      const selectedId = Number(el('purgePolicyId').value);
+      if (selectedId > 0) {
+        editPurgePolicy(selectedId);
+      }
+    });
+    el('savePurgePolicy').addEventListener('click', savePurgePolicy);
+    el('resetPurgePolicy').addEventListener('click', resetPurgePolicyForm);
     el('refreshQueue').addEventListener('click', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
@@ -1515,6 +1734,8 @@
       await loadRules();
       await loadQueue();
       await loadStatus();
+      await loadRetentionSettings();
+      await loadPurgePolicies();
       await loadAuthStatus();
     })();
   </script>

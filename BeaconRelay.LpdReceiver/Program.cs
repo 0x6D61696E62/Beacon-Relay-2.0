@@ -73,6 +73,7 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var retentionDefaults = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RetentionOptions>>().Value;
     if (db.Database.IsRelational())
     {
         SqliteDatabasePath.EnsureDirectoryExists(db.Database.GetConnectionString());
@@ -81,6 +82,21 @@ await using (var scope = app.Services.CreateAsyncScope())
     else
     {
         await db.Database.EnsureCreatedAsync();
+    }
+
+    if (!await db.RetentionSettings.AnyAsync(x => x.Id == 1))
+    {
+        db.RetentionSettings.Add(new RetentionSettingsRecord
+        {
+            Id = 1,
+            IsEnabled = retentionDefaults.Enabled,
+            RetentionDays = Math.Max(1, retentionDefaults.RetentionDays),
+            IntervalMinutes = Math.Max(1, retentionDefaults.IntervalMinutes),
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        });
+
+        await db.SaveChangesAsync();
     }
 
     // Restore delivery pause state from DB so a restart does not silently resume paused delivery
