@@ -16,7 +16,7 @@ public sealed class DeliveryDispatcherService(
         {
             try
             {
-                var processedAny = await ProcessOneAsync(stoppingToken);
+                var processedAny = await ProcessOneCycleAsync(stoppingToken);
                 if (!processedAny)
                 {
                     await Task.Delay(PollInterval, stoppingToken);
@@ -32,6 +32,11 @@ public sealed class DeliveryDispatcherService(
                 await Task.Delay(PollInterval, stoppingToken);
             }
         }
+    }
+
+    internal Task<bool> ProcessOneCycleAsync(CancellationToken cancellationToken)
+    {
+        return ProcessOneAsync(cancellationToken);
     }
 
     private async Task<bool> ProcessOneAsync(CancellationToken cancellationToken)

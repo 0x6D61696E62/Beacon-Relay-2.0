@@ -62,19 +62,42 @@ public static class ManagementApiEndpoints
         return data is null ? Results.NotFound() : Results.Ok(data);
     }
 
-    private static async Task<IResult> CreateRuleAsync(ProcessingRuleRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateRuleAsync(ProcessingRuleUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
-        input.Id = 0;
-        input.CreatedUtc = DateTime.UtcNow;
-        input.UpdatedUtc = DateTime.UtcNow;
+        var errors = ValidateRule(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
 
-        db.ProcessingRules.Add(input);
+        var record = new ProcessingRuleRecord
+        {
+            Name = input.Name,
+            Priority = input.Priority,
+            IsEnabled = input.IsEnabled,
+            MatchOperator = input.MatchOperator,
+            QueueMatchType = input.QueueMatchType,
+            QueueMatchValue = input.QueueMatchValue,
+            SourceIpCidr = input.SourceIpCidr,
+            VirtualPrinterId = input.VirtualPrinterId,
+            StopProcessingOnMatch = input.StopProcessingOnMatch,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+
+        db.ProcessingRules.Add(record);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/rules/{input.Id}", input);
+        return Results.Created($"/api/rules/{record.Id}", record);
     }
 
-    private static async Task<IResult> UpdateRuleAsync(int id, ProcessingRuleRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> UpdateRuleAsync(int id, ProcessingRuleUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
+        var errors = ValidateRule(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
         var existing = await db.ProcessingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (existing is null)
         {
@@ -109,19 +132,43 @@ public static class ManagementApiEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> CreateFolderDestinationAsync(RuleFolderDestinationRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateFolderDestinationAsync(RuleFolderDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
-        input.Id = 0;
-        input.CreatedUtc = DateTime.UtcNow;
-        input.UpdatedUtc = DateTime.UtcNow;
+        var errors = ValidateFolderDestination(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
 
-        db.RuleFolderDestinations.Add(input);
+        var record = new RuleFolderDestinationRecord
+        {
+            RuleId = input.RuleId,
+            IsEnabled = input.IsEnabled,
+            DestinationOrder = input.DestinationOrder,
+            RootFolder = input.RootFolder,
+            SubfolderPatternType = input.SubfolderPatternType,
+            SubfolderPattern = input.SubfolderPattern,
+            DuplicatePolicy = input.DuplicatePolicy,
+            UniqueNameMode = input.UniqueNameMode,
+            UniqueNameAffix = input.UniqueNameAffix,
+            IsQueueOnFailure = input.IsQueueOnFailure,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+
+        db.RuleFolderDestinations.Add(record);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/folder-destinations/{input.Id}", input);
+        return Results.Created($"/api/folder-destinations/{record.Id}", record);
     }
 
-    private static async Task<IResult> UpdateFolderDestinationAsync(int id, RuleFolderDestinationRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> UpdateFolderDestinationAsync(int id, RuleFolderDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
+        var errors = ValidateFolderDestination(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
         var existing = await db.RuleFolderDestinations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (existing is null)
         {
@@ -156,19 +203,42 @@ public static class ManagementApiEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> CreateForwardDestinationAsync(RuleForwardDestinationRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> CreateForwardDestinationAsync(RuleForwardDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
-        input.Id = 0;
-        input.CreatedUtc = DateTime.UtcNow;
-        input.UpdatedUtc = DateTime.UtcNow;
+        var errors = ValidateForwardDestination(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
 
-        db.RuleForwardDestinations.Add(input);
+        var record = new RuleForwardDestinationRecord
+        {
+            RuleId = input.RuleId,
+            IsEnabled = input.IsEnabled,
+            DestinationOrder = input.DestinationOrder,
+            Host = input.Host,
+            Port = input.Port,
+            OutboundQueueName = input.OutboundQueueName,
+            CompressMode = input.CompressMode,
+            PayloadMode = input.PayloadMode,
+            RetryPolicyId = input.RetryPolicyId,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+
+        db.RuleForwardDestinations.Add(record);
         await db.SaveChangesAsync(cancellationToken);
-        return Results.Created($"/api/forward-destinations/{input.Id}", input);
+        return Results.Created($"/api/forward-destinations/{record.Id}", record);
     }
 
-    private static async Task<IResult> UpdateForwardDestinationAsync(int id, RuleForwardDestinationRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> UpdateForwardDestinationAsync(int id, RuleForwardDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
+        var errors = ValidateForwardDestination(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
         var existing = await db.RuleForwardDestinations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (existing is null)
         {
@@ -265,8 +335,14 @@ public static class ManagementApiEndpoints
         return Results.Ok(data);
     }
 
-    private static async Task<IResult> UpdatePurgePolicyAsync(int id, PurgePolicyRecord input, AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> UpdatePurgePolicyAsync(int id, PurgePolicyUpdateRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
+        var errors = ValidatePurgePolicy(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
         var existing = await db.PurgePolicies.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (existing is null)
         {
@@ -282,5 +358,132 @@ public static class ManagementApiEndpoints
 
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(existing);
+    }
+
+    private static Dictionary<string, string[]> ValidateRule(ProcessingRuleUpsertRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(input.Name))
+        {
+            errors[nameof(input.Name)] = ["Name is required."];
+        }
+
+        if (input.Priority < 0)
+        {
+            errors[nameof(input.Priority)] = ["Priority must be 0 or greater."];
+        }
+
+        if (!string.Equals(input.MatchOperator, RuleMatchOperator.And, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.MatchOperator, RuleMatchOperator.Or, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.MatchOperator)] = ["MatchOperator must be And or Or."];
+        }
+
+        if (!string.Equals(input.QueueMatchType, QueueMatchTypeValues.Exact, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.QueueMatchType, QueueMatchTypeValues.Wildcard, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.QueueMatchType, QueueMatchTypeValues.Regex, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.QueueMatchType)] = ["QueueMatchType must be Exact, Wildcard, or Regex."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateFolderDestination(RuleFolderDestinationUpsertRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (input.RuleId <= 0)
+        {
+            errors[nameof(input.RuleId)] = ["RuleId is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(input.RootFolder))
+        {
+            errors[nameof(input.RootFolder)] = ["RootFolder is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(input.SubfolderPattern))
+        {
+            errors[nameof(input.SubfolderPattern)] = ["SubfolderPattern is required."];
+        }
+
+        if (!string.Equals(input.SubfolderPatternType, SubfolderPatternTypeValues.DotNetDateFormat, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.SubfolderPatternType, SubfolderPatternTypeValues.TokenTemplate, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.SubfolderPatternType)] = ["SubfolderPatternType must be DotNetDateFormat or TokenTemplate."];
+        }
+
+        if (!string.Equals(input.DuplicatePolicy, DestinationDuplicatePolicy.Overwrite, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.DuplicatePolicy, DestinationDuplicatePolicy.Fail, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.DuplicatePolicy, DestinationDuplicatePolicy.UniqueName, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.DuplicatePolicy)] = ["DuplicatePolicy must be Overwrite, Fail, or UniqueName."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateForwardDestination(RuleForwardDestinationUpsertRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (input.RuleId <= 0)
+        {
+            errors[nameof(input.RuleId)] = ["RuleId is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(input.Host))
+        {
+            errors[nameof(input.Host)] = ["Host is required."];
+        }
+
+        if (input.Port < 1 || input.Port > 65535)
+        {
+            errors[nameof(input.Port)] = ["Port must be 1-65535."];
+        }
+
+        if (string.IsNullOrWhiteSpace(input.OutboundQueueName))
+        {
+            errors[nameof(input.OutboundQueueName)] = ["OutboundQueueName is required."];
+        }
+
+        if (!string.Equals(input.CompressMode, ForwardCompressMode.None, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.CompressMode, ForwardCompressMode.ZipArchive, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.CompressMode)] = ["CompressMode must be None or ZipArchive."];
+        }
+
+        if (!string.Equals(input.PayloadMode, ForwardPayloadMode.OriginalFile, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.PayloadMode, ForwardPayloadMode.StoredFile, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.PayloadMode)] = ["PayloadMode must be OriginalFile or StoredFile."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidatePurgePolicy(PurgePolicyUpdateRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (!string.Equals(input.ApplyTo, PurgeApplyTarget.DeliveryAttempts, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(input.ApplyTo, PurgeApplyTarget.DeliveryWorkItemsTerminal, StringComparison.OrdinalIgnoreCase))
+        {
+            errors[nameof(input.ApplyTo)] = ["ApplyTo must be DeliveryAttempts or DeliveryWorkItemsTerminal."];
+        }
+
+        if (input.RetentionDays < 1)
+        {
+            errors[nameof(input.RetentionDays)] = ["RetentionDays must be at least 1."];
+        }
+
+        if (input.IntervalMinutes < 1)
+        {
+            errors[nameof(input.IntervalMinutes)] = ["IntervalMinutes must be at least 1."];
+        }
+
+        return errors;
     }
 }
