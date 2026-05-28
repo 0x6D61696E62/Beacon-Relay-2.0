@@ -3,6 +3,7 @@ using System;
 using BeaconRelay.LpdReceiver.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BeaconRelay.LpdReceiver.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260528160124_AddProcessingRulesAndDeliveryQueue")]
+    partial class AddProcessingRulesAndDeliveryQueue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.12");
@@ -214,51 +217,6 @@ namespace BeaconRelay.LpdReceiver.Data.Migrations
                     b.HasIndex("VirtualPrinterId");
 
                     b.ToTable("ProcessingRules");
-                });
-
-            modelBuilder.Entity("BeaconRelay.LpdReceiver.Data.PurgePolicyRecord", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ApplyTo")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("IntervalMinutes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("RetentionDays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("TerminalStatusesCsv")
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsEnabled");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("PurgePolicies");
                 });
 
             modelBuilder.Entity("BeaconRelay.LpdReceiver.Data.ReceivedFileRecord", b =>

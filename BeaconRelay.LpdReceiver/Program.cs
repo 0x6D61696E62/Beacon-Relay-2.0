@@ -3,6 +3,7 @@ using BeaconRelay.LpdReceiver.Health;
 using BeaconRelay.LpdReceiver.Options;
 using BeaconRelay.LpdReceiver.Protocol;
 using BeaconRelay.LpdReceiver.Services;
+using BeaconRelay.LpdReceiver.Api;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,10 +28,15 @@ builder.Services.AddSingleton<Sha256Hasher>();
 builder.Services.AddSingleton<FileStorageService>();
 builder.Services.AddSingleton<ControlFileMetadataParser>();
 builder.Services.AddSingleton<LpdSessionHandler>();
+builder.Services.AddSingleton<FolderDeliveryHandler>();
+builder.Services.AddSingleton<LpdForwardDeliveryHandler>();
+builder.Services.AddScoped<ProcessingRuleMatcher>();
+builder.Services.AddScoped<DeliveryWorkItemEnqueuer>();
 builder.Services.AddScoped<ReceivedFileProcessor>();
 
 builder.Services.AddHostedService<LpdListenerService>();
 builder.Services.AddHostedService<RetentionService>();
+builder.Services.AddHostedService<DeliveryDispatcherService>();
 
 builder.Services
     .AddHealthChecks()
@@ -57,6 +63,8 @@ app.MapHealthChecks(effectiveHealthOptions.ReadinessPath, new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready"),
 });
+
+app.MapManagementApi();
 
 await app.RunAsync();
 
