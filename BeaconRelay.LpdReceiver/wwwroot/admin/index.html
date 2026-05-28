@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beacon Relay Admin</title>
+  <style>
+    :root {
+      --bg: #f3f0ea;
+      --ink: #1f1a14;
+      --card: #fffaf3;
+      --line: #d9cfc2;
+      --accent: #a44a1f;
+      --accent-2: #2f6b6a;
+      --ok: #1f7a45;
+      --bad: #ab2f2f;
+      --warn: #9e6a09;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 20% 10%, #fffaf2 0%, var(--bg) 55%);
+    }
+    header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #fef6e9 0%, #f0ece4 100%);
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 3px 8px rgba(47, 35, 22, 0.08);
+    }
+    .card h2 {
+      margin: 0;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border-bottom: 1px solid var(--line);
+      background: #fff3e4;
+    }
+    .card .body { padding: 12px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    button.refresh {
+      background: var(--accent-2);
+      color: #fff;
+      border-color: var(--accent-2);
+    }
+    input, select {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      width: 100%;
+      background: #fff;
+    }
+    label {
+      display: block;
+      font-size: 0.84rem;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    @media (min-width: 700px) {
+      .row { grid-template-columns: 1fr 1fr; }
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.76rem;
+      border: 1px solid transparent;
+    }
+    .ok { color: var(--ok); border-color: var(--ok); }
+    .bad { color: var(--bad); border-color: var(--bad); }
+    .warn { color: var(--warn); border-color: var(--warn); }
+    .muted { color: #6e6457; }
+    .error {
+      margin-top: 8px;
+      color: var(--bad);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Beacon Relay Admin</h1>
+    <div class="muted">Queue rules, live delivery queue, and fast retry controls.</div>
+  </header>
+
+  <main>
+    <div class="grid-2">
+      <section class="card">
+        <h2>Quick Rule</h2>
+        <div class="body">
+          <div class="row">
+            <label>Rule Name
+              <input id="ruleName" value="New Rule">
+            </label>
+            <label>Priority
+              <input id="rulePriority" type="number" value="100" min="0">
+            </label>
+          </div>
+          <div class="row">
+            <label>Queue Match Type
+              <select id="queueType">
+                <option>Exact</option>
+                <option>Wildcard</option>
+                <option>Regex</option>
+              </select>
+            </label>
+            <label>Queue Match Value
+              <input id="queueValue" value="main">
+            </label>
+          </div>
+          <div class="toolbar">
+            <button class="primary" id="createRule">Create Rule</button>
+            <button class="refresh" id="refreshRules">Refresh Rules</button>
+          </div>
+          <div class="error" id="ruleError"></div>
+          <table>
+            <thead>
+              <tr><th>Priority</th><th>Name</th><th>Match</th><th>Status</th></tr>
+            </thead>
+            <tbody id="rulesBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Delivery Queue</h2>
+        <div class="body">
+          <div class="toolbar">
+            <button class="refresh" id="refreshQueue">Refresh Queue</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+            </thead>
+            <tbody id="queueBody"></tbody>
+          </table>
+          <div class="error" id="queueError"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    async function fetchJson(url, options) {
+      const res = await fetch(url, options);
+      let payload = null;
+      try { payload = await res.json(); } catch (_) {}
+      if (!res.ok) {
+        const detail = payload ? JSON.stringify(payload) : res.statusText;
+        throw new Error(detail);
+      }
+      return payload;
+    }
+
+    function statusPill(status) {
+      const cls = status === 'Succeeded' ? 'ok' : (status === 'Failed' || status === 'Canceled' ? 'bad' : 'warn');
+      return '<span class="pill ' + cls + '">' + status + '</span>';
+    }
+
+    async function loadRules() {
+      try {
+        el('ruleError').textContent = '';
+        const rules = await fetchJson('/api/rules');
+        el('rulesBody').innerHTML = rules.map(r =>
+          '<tr>' +
+          '<td>' + r.priority + '</td>' +
+          '<td>' + r.name + '</td>' +
+          '<td>' + (r.queueMatchType + ': ' + (r.queueMatchValue || '(none)')) + '</td>' +
+          '<td>' + statusPill(r.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '</tr>'
+        ).join('');
+      } catch (err) {
+        el('ruleError').textContent = 'Failed loading rules: ' + err.message;
+      }
+    }
+
+    async function createRule() {
+      const request = {
+        name: el('ruleName').value,
+        priority: Number(el('rulePriority').value),
+        isEnabled: true,
+        matchOperator: 'And',
+        queueMatchType: el('queueType').value,
+        queueMatchValue: el('queueValue').value,
+        sourceIpCidr: null,
+        virtualPrinterId: null,
+        stopProcessingOnMatch: false
+      };
+
+      try {
+        el('ruleError').textContent = '';
+        await fetchJson('/api/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+        await loadRules();
+      } catch (err) {
+        el('ruleError').textContent = 'Create failed: ' + err.message;
+      }
+    }
+
+    async function loadQueue() {
+      try {
+        el('queueError').textContent = '';
+        const items = await fetchJson('/api/delivery/work-items');
+        el('queueBody').innerHTML = items.map(item =>
+          '<tr>' +
+          '<td>' + statusPill(item.status) + '</td>' +
+          '<td>' + item.destinationType + ' #' + item.destinationId + '</td>' +
+          '<td>' + item.attemptCount + '</td>' +
+          '<td>' + new Date(item.nextAttemptUtc).toLocaleString() + '</td>' +
+          '<td><button onclick="retryItem(\'' + item.id + '\')">Retry Now</button></td>' +
+          '</tr>'
+        ).join('');
+      } catch (err) {
+        el('queueError').textContent = 'Failed loading queue: ' + err.message;
+      }
+    }
+
+    async function retryItem(id) {
+      try {
+        await fetchJson('/api/delivery/work-items/' + id + '/retry-now', { method: 'POST' });
+        await loadQueue();
+      } catch (err) {
+        el('queueError').textContent = 'Retry failed: ' + err.message;
+      }
+    }
+
+    window.retryItem = retryItem;
+    el('createRule').addEventListener('click', createRule);
+    el('refreshRules').addEventListener('click', loadRules);
+    el('refreshQueue').addEventListener('click', loadQueue);
+
+    loadRules();
+    loadQueue();
+  </script>
+</body>
+</html>

@@ -48,11 +48,21 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    SqliteDatabasePath.EnsureDirectoryExists(db.Database.GetConnectionString());
-    await db.Database.MigrateAsync();
+    if (db.Database.IsRelational())
+    {
+        SqliteDatabasePath.EnsureDirectoryExists(db.Database.GetConnectionString());
+        await db.Database.MigrateAsync();
+    }
+    else
+    {
+        await db.Database.EnsureCreatedAsync();
+    }
 }
 
 var effectiveHealthOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthEndpointOptions>>().Value;
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.MapHealthChecks(effectiveHealthOptions.HealthPath, new HealthCheckOptions
 {
@@ -69,3 +79,5 @@ app.MapManagementApi();
 await app.RunAsync();
 
 //dotnet ef migrations add AddVirtualPrinters --project BeaconRelay.LpdReceiver
+
+public partial class Program;
