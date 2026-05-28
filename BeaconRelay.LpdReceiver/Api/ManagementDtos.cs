@@ -1,3 +1,5 @@
+using BeaconRelay.LpdReceiver.Data;
+
 namespace BeaconRelay.LpdReceiver.Api;
 
 public sealed record ProcessingRuleUpsertRequest(
@@ -21,6 +23,7 @@ public sealed record RuleFolderDestinationUpsertRequest(
     string DuplicatePolicy,
     string? UniqueNameMode,
     string? UniqueNameAffix,
+    int? RetryPolicyId,
     bool IsQueueOnFailure);
 
 public sealed record RuleForwardDestinationUpsertRequest(
@@ -40,3 +43,18 @@ public sealed record PurgePolicyUpdateRequest(
     int RetentionDays,
     string? TerminalStatusesCsv,
     int IntervalMinutes);
+
+public sealed record AdminLoginRequest(
+    string Username,
+    string Password,
+    bool RememberMe);
+
+public sealed record ReorderRulesRequest(
+    IReadOnlyList<int> OrderedRuleIds);
+
+public sealed record DeliveryWorkItemQueryResult(
+    IReadOnlyList<DeliveryWorkItemRecord> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    int TotalPages);

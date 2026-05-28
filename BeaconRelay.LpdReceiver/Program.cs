@@ -4,6 +4,7 @@ using BeaconRelay.LpdReceiver.Options;
 using BeaconRelay.LpdReceiver.Protocol;
 using BeaconRelay.LpdReceiver.Services;
 using BeaconRelay.LpdReceiver.Api;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,28 @@ builder.Services.Configure<DeduplicationOptions>(builder.Configuration.GetSectio
 builder.Services.Configure<RetentionOptions>(builder.Configuration.GetSection(RetentionOptions.SectionName));
 builder.Services.Configure<HealthEndpointOptions>(builder.Configuration.GetSection(HealthEndpointOptions.SectionName));
 builder.Services.Configure<AdminAuthOptions>(builder.Configuration.GetSection(AdminAuthOptions.SectionName));
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "BeaconRelay.Admin";
+        options.LoginPath = "/login.html";
+        options.AccessDeniedPath = "/login.html";
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization();
 
 var healthOptions = builder.Configuration.GetSection(HealthEndpointOptions.SectionName).Get<HealthEndpointOptions>() ?? new HealthEndpointOptions();
 builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(healthOptions.Port));
@@ -62,7 +85,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 var effectiveHealthOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthEndpointOptions>>().Value;
 
-app.UseMiddleware<AdminBasicAuthMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<AdminSessionGateMiddleware>();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -77,6 +102,7 @@ app.MapHealthChecks(effectiveHealthOptions.ReadinessPath, new HealthCheckOptions
 });
 
 app.MapManagementApi();
+app.MapAdminAuthApi();
 
 await app.RunAsync();
 

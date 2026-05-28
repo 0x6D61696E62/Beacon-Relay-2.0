@@ -31,26 +31,28 @@
       padding: 20px;
       border-bottom: 1px solid var(--line);
       background: linear-gradient(90deg, #fff5e6 0%, #ece3d8 100%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
     }
     h1, h2, h3 { margin: 0; }
     h1 { font-size: 1.45rem; letter-spacing: 0.02em; }
     main {
-      max-width: 1320px;
+      max-width: 1360px;
       margin: 0 auto;
       padding: 16px;
       display: grid;
       gap: 16px;
     }
-    .grid-2, .grid-3 {
+    .grid-2 {
       display: grid;
       grid-template-columns: 1fr;
       gap: 16px;
     }
-    @media (min-width: 900px) {
+    @media (min-width: 1000px) {
       .grid-2 { grid-template-columns: 1fr 1fr; }
-    }
-    @media (min-width: 1200px) {
-      .grid-3 { grid-template-columns: 1.2fr 1fr 1fr; }
     }
     .card {
       background: var(--card);
@@ -71,7 +73,7 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
-      align-items: center;
+      align-items: end;
     }
     button {
       border: 1px solid var(--line);
@@ -85,7 +87,7 @@
     button.refresh { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
     button.secondary { background: var(--accent-3); color: #fff; border-color: var(--accent-3); }
     button.danger { background: #fff1f1; color: var(--bad); border-color: #e1b1b1; }
-    input, select, textarea {
+    input, select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -97,6 +99,7 @@
       display: block;
       font-size: 0.84rem;
       margin-bottom: 8px;
+      min-width: 120px;
     }
     .row, .row-3 {
       display: grid;
@@ -153,12 +156,24 @@
       flex-wrap: wrap;
       gap: 6px;
     }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Beacon Relay Admin</h1>
-    <div class="muted">Rules, folder and LPD destinations, live queue filters, and attempt history.</div>
+    <div>
+      <h1>Beacon Relay Admin</h1>
+      <div class="muted">Rules, destinations, retry policy selection, and paged delivery operations.</div>
+    </div>
+    <div class="meta">
+      <div id="authStatus" class="muted"></div>
+      <button id="logoutButton" class="secondary">Sign Out</button>
+    </div>
   </header>
 
   <main>
@@ -201,8 +216,9 @@
           <button class="primary" id="saveRule">Save Rule</button>
           <button id="resetRule">Reset Form</button>
           <button class="refresh" id="refreshRules">Refresh Rules</button>
+          <button id="saveRuleOrder">Save Current Rule Order</button>
         </div>
-        <div class="hint">Select Edit on a row to update it, or Delete to remove it.</div>
+        <div class="hint">Use Up and Down to reorder rules before saving the new priority order.</div>
         <div class="error" id="ruleError"></div>
         <table>
           <thead>
@@ -257,8 +273,19 @@
                 <option>HashFragment</option>
               </select>
             </label>
+            <label>Retry Policy
+              <select id="folderRetryPolicyId"></select>
+            </label>
+          </div>
+          <div class="row">
             <label>Unique Affix
               <input id="folderUniqueAffix" placeholder="copy">
+            </label>
+            <label>Retry On Failure
+              <select id="folderRetryOnFailure">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
             </label>
           </div>
           <div class="row">
@@ -266,12 +293,6 @@
               <select id="folderEnabled">
                 <option value="true">Enabled</option>
                 <option value="false">Disabled</option>
-              </select>
-            </label>
-            <label>Retry On Failure
-              <select id="folderRetryOnFailure">
-                <option value="true">Yes</option>
-                <option value="false">No</option>
               </select>
             </label>
           </div>
@@ -282,7 +303,7 @@
           <div class="error" id="folderError"></div>
           <table>
             <thead>
-              <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Policy</th><th>Action</th></tr>
+              <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Retry</th><th>Action</th></tr>
             </thead>
             <tbody id="folderBody"></tbody>
           </table>
@@ -326,6 +347,11 @@
                 <option>OriginalFile</option>
               </select>
             </label>
+            <label>Retry Policy
+              <select id="forwardRetryPolicyId"></select>
+            </label>
+          </div>
+          <div class="row">
             <label>Enabled
               <select id="forwardEnabled">
                 <option value="true">Enabled</option>
@@ -340,7 +366,7 @@
           <div class="error" id="forwardError"></div>
           <table>
             <thead>
-              <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Mode</th><th>Action</th></tr>
+              <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Retry</th><th>Action</th></tr>
             </thead>
             <tbody id="forwardBody"></tbody>
           </table>
@@ -352,7 +378,7 @@
       <h2>Delivery Queue</h2>
       <div class="body">
         <div class="toolbar">
-          <label>Status Filter
+          <label>Status
             <select id="queueStatusFilter">
               <option value="All">All</option>
               <option>Pending</option>
@@ -361,6 +387,17 @@
               <option>Succeeded</option>
               <option>Failed</option>
               <option>Canceled</option>
+            </select>
+          </label>
+          <label>Search
+            <input id="queueSearch" placeholder="queue, file, destination, error">
+          </label>
+          <label>Page Size
+            <select id="queuePageSize">
+              <option>10</option>
+              <option selected>25</option>
+              <option>50</option>
+              <option>100</option>
             </select>
           </label>
           <button class="refresh" id="refreshQueue">Refresh Queue</button>
@@ -373,6 +410,11 @@
               </thead>
               <tbody id="queueBody"></tbody>
             </table>
+            <div class="toolbar">
+              <button id="prevPage">Previous</button>
+              <div id="pageSummary" class="muted"></div>
+              <button id="nextPage">Next</button>
+            </div>
             <div class="error" id="queueError"></div>
           </div>
           <div class="details-panel">
@@ -391,30 +433,30 @@
       rules: [],
       folderDestinations: [],
       forwardDestinations: [],
+      retryPolicies: [],
       workItems: [],
       editingRuleId: null,
       editingFolderId: null,
-      editingForwardId: null
+      editingForwardId: null,
+      queuePage: 1,
+      queueTotalPages: 1,
+      queueSelectedId: null
     };
 
     async function fetchJson(url, options) {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { credentials: 'same-origin', ...options });
       let payload = null;
       try { payload = await response.json(); } catch (_) {}
-
       if (!response.ok) {
         const detail = payload ? JSON.stringify(payload) : response.statusText;
         throw new Error(detail);
       }
-
       return payload;
     }
 
     function statusPill(status) {
       const normalized = String(status);
-      const className = normalized === 'Succeeded' || normalized === 'Enabled'
-        ? 'ok'
-        : (normalized === 'Failed' || normalized === 'Canceled' || normalized === 'Disabled' ? 'bad' : 'warn');
+      const className = normalized === 'Succeeded' || normalized === 'Enabled' ? 'ok' : (normalized === 'Failed' || normalized === 'Canceled' || normalized === 'Disabled' ? 'bad' : 'warn');
       return '<span class="pill ' + className + '">' + normalized + '</span>';
     }
 
@@ -423,9 +465,20 @@
       return rule ? rule.name : ('Rule #' + ruleId);
     }
 
-    function setSelectOptions(selectId) {
+    function retryPolicyName(policyId) {
+      if (!policyId) { return 'Default'; }
+      const policy = state.retryPolicies.find(x => x.id === policyId);
+      return policy ? policy.name : ('Policy #' + policyId);
+    }
+
+    function setRuleOptions(selectId) {
       const html = state.rules.map(rule => '<option value="' + rule.id + '">' + rule.name + '</option>').join('');
-      el(selectId).innerHTML = html || '<option value="">No rules available</option>';
+      el(selectId).innerHTML = html || '<option value="">No rules</option>';
+    }
+
+    function setRetryPolicyOptions(selectId) {
+      const html = '<option value="">Default</option>' + state.retryPolicies.map(policy => '<option value="' + policy.id + '">' + policy.name + '</option>').join('');
+      el(selectId).innerHTML = html;
     }
 
     function flattenDestinations() {
@@ -434,7 +487,7 @@
     }
 
     function renderRules() {
-      el('rulesBody').innerHTML = state.rules.map(rule => {
+      el('rulesBody').innerHTML = state.rules.map((rule, index) => {
         const folderCount = (rule.folderDestinations || []).length;
         const forwardCount = (rule.forwardDestinations || []).length;
         return '<tr>' +
@@ -444,6 +497,8 @@
           '<td>' + folderCount + ' folder / ' + forwardCount + ' forward</td>' +
           '<td>' + statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
           '<td class="actions">' +
+            '<button onclick="moveRule(' + index + ', -1)">Up</button>' +
+            '<button onclick="moveRule(' + index + ', 1)">Down</button>' +
             '<button onclick="editRule(' + rule.id + ')">Edit</button>' +
             '<button class="danger" onclick="deleteRule(' + rule.id + ')">Delete</button>' +
           '</td>' +
@@ -457,7 +512,7 @@
           '<td>' + dest.ruleName + '</td>' +
           '<td>' + dest.rootFolder + '</td>' +
           '<td>' + dest.subfolderPatternType + ': ' + dest.subfolderPattern + '</td>' +
-          '<td>' + dest.duplicatePolicy + '</td>' +
+          '<td>' + retryPolicyName(dest.retryPolicyId) + '</td>' +
           '<td class="actions">' +
             '<button onclick="editFolder(' + dest.id + ')">Edit</button>' +
             '<button class="danger" onclick="deleteFolder(' + dest.id + ')">Delete</button>' +
@@ -472,7 +527,7 @@
           '<td>' + dest.ruleName + '</td>' +
           '<td>' + dest.host + ':' + dest.port + '</td>' +
           '<td>' + dest.outboundQueueName + '</td>' +
-          '<td>' + dest.compressMode + ' / ' + dest.payloadMode + '</td>' +
+          '<td>' + retryPolicyName(dest.retryPolicyId) + '</td>' +
           '<td class="actions">' +
             '<button onclick="editForward(' + dest.id + ')">Edit</button>' +
             '<button class="danger" onclick="deleteForward(' + dest.id + ')">Delete</button>' +
@@ -482,9 +537,7 @@
     }
 
     function renderQueue() {
-      const filter = el('queueStatusFilter').value;
-      const filtered = filter === 'All' ? state.workItems : state.workItems.filter(item => item.status === filter);
-      el('queueBody').innerHTML = filtered.map(item =>
+      el('queueBody').innerHTML = state.workItems.map(item =>
         '<tr>' +
           '<td>' + statusPill(item.status) + '</td>' +
           '<td>' + item.destinationType + ' #' + item.destinationId + '</td>' +
@@ -496,6 +549,37 @@
           '</td>' +
         '</tr>'
       ).join('');
++
++      el('pageSummary').textContent = 'Page ' + state.queuePage + ' of ' + state.queueTotalPages;
++      el('prevPage').disabled = state.queuePage <= 1;
++      el('nextPage').disabled = state.queuePage >= state.queueTotalPages;
+    }
+
+    async function loadAuthStatus() {
+      try {
+        const status = await fetchJson('/auth/status');
+        el('authStatus').textContent = status.enabled ? ('Signed in as ' + (status.username || 'admin')) : 'Auth disabled';
+      } catch (_) {
+        el('authStatus').textContent = '';
+      }
+    }
+
+    async function loadRetryPolicies() {
+      state.retryPolicies = await fetchJson('/api/retry-policies');
+      setRetryPolicyOptions('folderRetryPolicyId');
+      setRetryPolicyOptions('forwardRetryPolicyId');
+    }
+
+    async function loadRules() {
+      el('ruleError').textContent = '';
+      const rules = await fetchJson('/api/rules');
+      state.rules = rules;
+      flattenDestinations();
+      setRuleOptions('folderRuleId');
+      setRuleOptions('forwardRuleId');
+      renderRules();
+      renderFolderDestinations();
+      renderForwardDestinations();
     }
 
     function resetRuleForm() {
@@ -517,6 +601,7 @@
       el('folderDuplicatePolicy').value = 'UniqueName';
       el('folderUniqueNameMode').value = 'Counter';
       el('folderUniqueAffix').value = '';
+      el('folderRetryPolicyId').value = '';
       el('folderEnabled').value = 'true';
       el('folderRetryOnFailure').value = 'true';
     }
@@ -529,52 +614,28 @@
       el('forwardQueue').value = 'remote-queue';
       el('forwardCompression').value = 'None';
       el('forwardPayloadMode').value = 'StoredFile';
+      el('forwardRetryPolicyId').value = '';
       el('forwardEnabled').value = 'true';
     }
 
-    async function loadRules() {
-      try {
-        el('ruleError').textContent = '';
-        const rules = await fetchJson('/api/rules');
-        state.rules = rules;
-        flattenDestinations();
-        setSelectOptions('folderRuleId');
-        setSelectOptions('forwardRuleId');
-        renderRules();
-        renderFolderDestinations();
-        renderForwardDestinations();
-      } catch (err) {
-        el('ruleError').textContent = 'Failed loading rules: ' + err.message;
-      }
-    }
-
     async function saveRule() {
-      const request = {
-        name: el('ruleName').value,
-        priority: Number(el('rulePriority').value),
-        isEnabled: el('ruleEnabled').value === 'true',
-        matchOperator: el('matchOperator').value,
-        queueMatchType: el('queueType').value,
-        queueMatchValue: el('queueValue').value || null,
-        sourceIpCidr: null,
-        virtualPrinterId: null,
-        stopProcessingOnMatch: false
-      };
-
       try {
-        el('ruleError').textContent = '';
+        const request = {
+          name: el('ruleName').value,
+          priority: Number(el('rulePriority').value),
+          isEnabled: el('ruleEnabled').value === 'true',
+          matchOperator: el('matchOperator').value,
+          queueMatchType: el('queueType').value,
+          queueMatchValue: el('queueValue').value || null,
+          sourceIpCidr: null,
+          virtualPrinterId: null,
+          stopProcessingOnMatch: false
+        };
+
         if (state.editingRuleId) {
-          await fetchJson('/api/rules/' + state.editingRuleId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/rules/' + state.editingRuleId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         } else {
-          await fetchJson('/api/rules', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         }
 
         resetRuleForm();
@@ -584,34 +645,39 @@
       }
     }
 
-    async function saveFolder() {
-      const request = {
-        ruleId: Number(el('folderRuleId').value),
-        isEnabled: el('folderEnabled').value === 'true',
-        destinationOrder: Number(el('folderOrder').value),
-        rootFolder: el('folderRoot').value,
-        subfolderPatternType: el('folderPatternType').value,
-        subfolderPattern: el('folderPattern').value,
-        duplicatePolicy: el('folderDuplicatePolicy').value,
-        uniqueNameMode: el('folderUniqueNameMode').value,
-        uniqueNameAffix: el('folderUniqueAffix').value || null,
-        isQueueOnFailure: el('folderRetryOnFailure').value === 'true'
-      };
-
+    async function saveRuleOrder() {
       try {
-        el('folderError').textContent = '';
+        await fetchJson('/api/rules/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedRuleIds: state.rules.map(rule => rule.id) })
+        });
+        await loadRules();
+      } catch (err) {
+        el('ruleError').textContent = 'Reorder failed: ' + err.message;
+      }
+    }
+
+    async function saveFolder() {
+      try {
+        const request = {
+          ruleId: Number(el('folderRuleId').value),
+          isEnabled: el('folderEnabled').value === 'true',
+          destinationOrder: Number(el('folderOrder').value),
+          rootFolder: el('folderRoot').value,
+          subfolderPatternType: el('folderPatternType').value,
+          subfolderPattern: el('folderPattern').value,
+          duplicatePolicy: el('folderDuplicatePolicy').value,
+          uniqueNameMode: el('folderUniqueNameMode').value,
+          uniqueNameAffix: el('folderUniqueAffix').value || null,
+          retryPolicyId: el('folderRetryPolicyId').value ? Number(el('folderRetryPolicyId').value) : null,
+          isQueueOnFailure: el('folderRetryOnFailure').value === 'true'
+        };
+
         if (state.editingFolderId) {
-          await fetchJson('/api/folder-destinations/' + state.editingFolderId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/folder-destinations/' + state.editingFolderId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         } else {
-          await fetchJson('/api/folder-destinations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/folder-destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         }
 
         resetFolderForm();
@@ -622,32 +688,23 @@
     }
 
     async function saveForward() {
-      const request = {
-        ruleId: Number(el('forwardRuleId').value),
-        isEnabled: el('forwardEnabled').value === 'true',
-        destinationOrder: Number(el('forwardOrder').value),
-        host: el('forwardHost').value,
-        port: Number(el('forwardPort').value),
-        outboundQueueName: el('forwardQueue').value,
-        compressMode: el('forwardCompression').value,
-        payloadMode: el('forwardPayloadMode').value,
-        retryPolicyId: null
-      };
-
       try {
-        el('forwardError').textContent = '';
+        const request = {
+          ruleId: Number(el('forwardRuleId').value),
+          isEnabled: el('forwardEnabled').value === 'true',
+          destinationOrder: Number(el('forwardOrder').value),
+          host: el('forwardHost').value,
+          port: Number(el('forwardPort').value),
+          outboundQueueName: el('forwardQueue').value,
+          compressMode: el('forwardCompression').value,
+          payloadMode: el('forwardPayloadMode').value,
+          retryPolicyId: el('forwardRetryPolicyId').value ? Number(el('forwardRetryPolicyId').value) : null
+        };
+
         if (state.editingForwardId) {
-          await fetchJson('/api/forward-destinations/' + state.editingForwardId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/forward-destinations/' + state.editingForwardId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         } else {
-          await fetchJson('/api/forward-destinations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-          });
+          await fetchJson('/api/forward-destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
         }
 
         resetForwardForm();
@@ -659,8 +716,17 @@
 
     async function loadQueue() {
       try {
-        el('queueError').textContent = '';
-        state.workItems = await fetchJson('/api/delivery/work-items');
+        const status = el('queueStatusFilter').value;
+        const search = el('queueSearch').value.trim();
+        const pageSize = Number(el('queuePageSize').value);
+        const query = new URLSearchParams({ page: String(state.queuePage), pageSize: String(pageSize) });
+        if (status && status !== 'All') query.set('status', status);
+        if (search) query.set('search', search);
+
+        const result = await fetchJson('/api/delivery/work-items?' + query.toString());
+        state.workItems = result.items || [];
+        state.queuePage = result.page || 1;
+        state.queueTotalPages = result.totalPages || 1;
         renderQueue();
       } catch (err) {
         el('queueError').textContent = 'Failed loading queue: ' + err.message;
@@ -669,27 +735,20 @@
 
     async function showDetails(id) {
       try {
+        state.queueSelectedId = id;
         const item = await fetchJson('/api/delivery/work-items/' + id);
         const attempts = item.attempts || [];
-        const attemptRows = attempts.length === 0
+        const attemptHtml = attempts.length === 0
           ? '<div class="muted">No attempts recorded yet.</div>'
-          : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' +
-            attempts.map(attempt =>
-              '<tr>' +
-                '<td>' + attempt.attemptNumber + '</td>' +
-                '<td>' + statusPill(attempt.outcome) + '</td>' +
-                '<td>' + new Date(attempt.startedUtc).toLocaleString() + '</td>' +
-                '<td>' + (attempt.errorMessage || '') + '</td>' +
-              '</tr>'
-            ).join('') +
-            '</tbody></table>';
-
+          : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' + attempts.map(attempt =>
+              '<tr><td>' + attempt.attemptNumber + '</td><td>' + statusPill(attempt.outcome) + '</td><td>' + new Date(attempt.startedUtc).toLocaleString() + '</td><td>' + (attempt.errorMessage || '') + '</td></tr>'
+            ).join('') + '</tbody></table>';
         el('queueDetails').innerHTML =
           '<div><strong>Work Item:</strong> ' + item.id + '</div>' +
           '<div><strong>Status:</strong> ' + statusPill(item.status) + '</div>' +
           '<div><strong>Destination:</strong> ' + item.destinationType + ' #' + item.destinationId + '</div>' +
           '<div><strong>Attempts:</strong> ' + item.attemptCount + '</div>' +
-          '<div style="margin-top:10px;">' + attemptRows + '</div>';
+          '<div style="margin-top:10px;">' + attemptHtml + '</div>';
       } catch (err) {
         el('queueError').textContent = 'Failed loading details: ' + err.message;
       }
@@ -706,59 +765,37 @@
     }
 
     async function deleteRule(id) {
-      if (!confirm('Delete this rule?')) {
-        return;
-      }
-
-      try {
-        await fetchJson('/api/rules/' + id, { method: 'DELETE' });
-        if (state.editingRuleId === id) {
-          resetRuleForm();
-        }
-        await loadRules();
-      } catch (err) {
-        el('ruleError').textContent = 'Delete failed: ' + err.message;
-      }
+      if (!confirm('Delete this rule?')) return;
+      await fetchJson('/api/rules/' + id, { method: 'DELETE' });
+      if (state.editingRuleId === id) resetRuleForm();
+      await loadRules();
     }
 
     async function deleteFolder(id) {
-      if (!confirm('Delete this folder destination?')) {
-        return;
-      }
-
-      try {
-        await fetchJson('/api/folder-destinations/' + id, { method: 'DELETE' });
-        if (state.editingFolderId === id) {
-          resetFolderForm();
-        }
-        await loadRules();
-      } catch (err) {
-        el('folderError').textContent = 'Delete failed: ' + err.message;
-      }
+      if (!confirm('Delete this folder destination?')) return;
+      await fetchJson('/api/folder-destinations/' + id, { method: 'DELETE' });
+      if (state.editingFolderId === id) resetFolderForm();
+      await loadRules();
     }
 
     async function deleteForward(id) {
-      if (!confirm('Delete this forward destination?')) {
-        return;
-      }
+      if (!confirm('Delete this forward destination?')) return;
+      await fetchJson('/api/forward-destinations/' + id, { method: 'DELETE' });
+      if (state.editingForwardId === id) resetForwardForm();
+      await loadRules();
+    }
 
-      try {
-        await fetchJson('/api/forward-destinations/' + id, { method: 'DELETE' });
-        if (state.editingForwardId === id) {
-          resetForwardForm();
-        }
-        await loadRules();
-      } catch (err) {
-        el('forwardError').textContent = 'Delete failed: ' + err.message;
-      }
+    function moveRule(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= state.rules.length) return;
+      const [item] = state.rules.splice(index, 1);
+      state.rules.splice(target, 0, item);
+      renderRules();
     }
 
     function editRule(id) {
       const rule = state.rules.find(x => x.id === id);
-      if (!rule) {
-        return;
-      }
-
+      if (!rule) return;
       state.editingRuleId = id;
       el('ruleName').value = rule.name;
       el('rulePriority').value = rule.priority;
@@ -770,10 +807,7 @@
 
     function editFolder(id) {
       const dest = state.folderDestinations.find(x => x.id === id);
-      if (!dest) {
-        return;
-      }
-
+      if (!dest) return;
       state.editingFolderId = id;
       el('folderRuleId').value = String(dest.ruleId);
       el('folderOrder').value = dest.destinationOrder;
@@ -783,16 +817,14 @@
       el('folderDuplicatePolicy').value = dest.duplicatePolicy;
       el('folderUniqueNameMode').value = dest.uniqueNameMode || 'Counter';
       el('folderUniqueAffix').value = dest.uniqueNameAffix || '';
+      el('folderRetryPolicyId').value = dest.retryPolicyId || '';
       el('folderEnabled').value = dest.isEnabled ? 'true' : 'false';
       el('folderRetryOnFailure').value = dest.isQueueOnFailure ? 'true' : 'false';
     }
 
     function editForward(id) {
       const dest = state.forwardDestinations.find(x => x.id === id);
-      if (!dest) {
-        return;
-      }
-
+      if (!dest) return;
       state.editingForwardId = id;
       el('forwardRuleId').value = String(dest.ruleId);
       el('forwardOrder').value = dest.destinationOrder;
@@ -801,33 +833,50 @@
       el('forwardQueue').value = dest.outboundQueueName;
       el('forwardCompression').value = dest.compressMode;
       el('forwardPayloadMode').value = dest.payloadMode;
+      el('forwardRetryPolicyId').value = dest.retryPolicyId || '';
       el('forwardEnabled').value = dest.isEnabled ? 'true' : 'false';
     }
 
+    async function logout() {
+      await fetchJson('/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    window.moveRule = moveRule;
     window.editRule = editRule;
-    window.deleteRule = deleteRule;
     window.editFolder = editFolder;
-    window.deleteFolder = deleteFolder;
     window.editForward = editForward;
+    window.deleteRule = deleteRule;
+    window.deleteFolder = deleteFolder;
     window.deleteForward = deleteForward;
     window.showDetails = showDetails;
     window.retryItem = retryItem;
 
     el('saveRule').addEventListener('click', saveRule);
     el('resetRule').addEventListener('click', resetRuleForm);
-    el('refreshRules').addEventListener('click', loadRules);
+    el('refreshRules').addEventListener('click', async () => { await loadRules(); });
+    el('saveRuleOrder').addEventListener('click', saveRuleOrder);
     el('saveFolder').addEventListener('click', saveFolder);
     el('resetFolder').addEventListener('click', resetFolderForm);
     el('saveForward').addEventListener('click', saveForward);
     el('resetForward').addEventListener('click', resetForwardForm);
-    el('refreshQueue').addEventListener('click', loadQueue);
-    el('queueStatusFilter').addEventListener('change', renderQueue);
+    el('refreshQueue').addEventListener('click', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queuePageSize').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('prevPage').addEventListener('click', async () => { if (state.queuePage > 1) { state.queuePage -= 1; await loadQueue(); } });
+    el('nextPage').addEventListener('click', async () => { if (state.queuePage < state.queueTotalPages) { state.queuePage += 1; await loadQueue(); } });
+    el('logoutButton').addEventListener('click', logout);
 
-    resetRuleForm();
-    resetFolderForm();
-    resetForwardForm();
-    loadRules();
-    loadQueue();
+    (async function init() {
+      resetRuleForm();
+      await loadRetryPolicies();
+      resetFolderForm();
+      resetForwardForm();
+      await loadRules();
+      await loadQueue();
+      await loadAuthStatus();
+    })();
   </script>
 </body>
 </html>

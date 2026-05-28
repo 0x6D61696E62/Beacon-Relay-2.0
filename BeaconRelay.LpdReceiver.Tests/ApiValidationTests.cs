@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using BeaconRelay.LpdReceiver.Data;
@@ -117,15 +116,27 @@ public sealed class ApiValidationTests
         using var response = await client.GetAsync("/api/rules");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.NotNull(response.Headers.WwwAuthenticate.FirstOrDefault(x => x.Scheme == "Basic"));
     }
 
     [Fact]
-    public async Task AdminRoute_WhenAuthEnabled_WithCredentials_ReturnsOk()
+    public async Task AdminRoute_WhenAuthEnabled_WithoutCredentials_RedirectsToLogin()
     {
         await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
-        using var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = BuildBasicAuthHeader("admin", "test-secret");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync("/admin/index.html");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/login.html", response.Headers.Location?.OriginalString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminRoute_WhenAuthEnabled_WithSessionCookie_ReturnsOk()
+    {
+        await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        await LoginAsync(client);
 
         using var response = await client.GetAsync("/admin/index.html");
         var body = await response.Content.ReadAsStringAsync();
@@ -135,11 +146,12 @@ public sealed class ApiValidationTests
     }
 
     [Fact]
-    public async Task ApiRoute_WhenAuthEnabled_WithCredentials_AllowsValidationResponse()
+    public async Task ApiRoute_WhenAuthEnabled_WithSessionCookie_AllowsValidationResponse()
     {
         await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
-        using var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = BuildBasicAuthHeader("admin", "test-secret");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        await LoginAsync(client);
 
         var payload = """
         {
@@ -160,6 +172,17 @@ public sealed class ApiValidationTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains("MatchOperator", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Login_WithInvalidPassword_ReturnsUnauthorized()
+    {
+        await using var factory = new BeaconWebAppFactory(enableAdminAuth: true);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.PostAsync("/auth/login", new StringContent("{\"username\":\"admin\",\"password\":\"wrong\",\"rememberMe\":false}", Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     private sealed class BeaconWebAppFactory(bool enableAdminAuth = false) : WebApplicationFactory<Program>
@@ -194,9 +217,9 @@ public sealed class ApiValidationTests
         }
     }
 
-    private static AuthenticationHeaderValue BuildBasicAuthHeader(string username, string password)
+    private static async Task LoginAsync(HttpClient client)
     {
-        var raw = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-        return new AuthenticationHeaderValue("Basic", raw);
+        using var response = await client.PostAsync("/auth/login", new StringContent("{\"username\":\"admin\",\"password\":\"test-secret\",\"rememberMe\":false}", Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

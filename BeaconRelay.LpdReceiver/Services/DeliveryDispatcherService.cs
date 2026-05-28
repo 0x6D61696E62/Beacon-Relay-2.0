@@ -69,6 +69,7 @@ public sealed class DeliveryDispatcherService(
         await db.Entry(candidate).Reference(x => x.ReceivedFile).LoadAsync(cancellationToken);
 
         DeliveryExecutionResult result;
+        RetryPolicyRecord? retryPolicy = null;
 
         if (string.Equals(candidate.DestinationType, DeliveryDestinationType.Folder, StringComparison.OrdinalIgnoreCase))
         {
@@ -79,6 +80,7 @@ public sealed class DeliveryDispatcherService(
             }
             else
             {
+                retryPolicy = await ResolveRetryPolicyAsync(db, destination.RetryPolicyId, cancellationToken);
                 result = await folderHandler.DeliverAsync(candidate.ReceivedFile, destination, cancellationToken);
             }
         }
@@ -91,6 +93,7 @@ public sealed class DeliveryDispatcherService(
             }
             else
             {
+                retryPolicy = await ResolveRetryPolicyAsync(db, destination.RetryPolicyId, cancellationToken);
                 result = await forwardHandler.DeliverAsync(candidate.ReceivedFile, destination, cancellationToken);
             }
         }
@@ -99,11 +102,11 @@ public sealed class DeliveryDispatcherService(
             result = DeliveryExecutionResult.Failure("UnknownDestinationType", $"Unknown destination type '{candidate.DestinationType}'.", shouldRetry: false);
         }
 
-        await PersistAttemptOutcomeAsync(db, candidate, result, cancellationToken);
+        await PersistAttemptOutcomeAsync(db, candidate, result, retryPolicy, cancellationToken);
         return true;
     }
 
-    private static async Task PersistAttemptOutcomeAsync(AppDbContext db, DeliveryWorkItemRecord workItem, DeliveryExecutionResult result, CancellationToken cancellationToken)
+    private static async Task PersistAttemptOutcomeAsync(AppDbContext db, DeliveryWorkItemRecord workItem, DeliveryExecutionResult result, RetryPolicyRecord? retryPolicy, CancellationToken cancellationToken)
     {
         var nowUtc = DateTime.UtcNow;
         workItem.AttemptCount += 1;
@@ -140,12 +143,6 @@ public sealed class DeliveryDispatcherService(
             return;
         }
 
-        var retryPolicy = await db.RetryPolicies
-            .AsNoTracking()
-            .Where(x => x.IsEnabled)
-            .OrderBy(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
         var canRetry = result.ShouldRetry && (retryPolicy?.MaxAttempts is null || workItem.AttemptCount < retryPolicy.MaxAttempts.Value);
         if (canRetry)
         {
@@ -159,6 +156,27 @@ public sealed class DeliveryDispatcherService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task<RetryPolicyRecord?> ResolveRetryPolicyAsync(AppDbContext db, int? retryPolicyId, CancellationToken cancellationToken)
+    {
+        if (retryPolicyId.HasValue)
+        {
+            var selected = await db.RetryPolicies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == retryPolicyId.Value && x.IsEnabled, cancellationToken);
+
+            if (selected is not null)
+            {
+                return selected;
+            }
+        }
+
+        return await db.RetryPolicies
+            .AsNoTracking()
+            .Where(x => x.IsEnabled)
+            .OrderBy(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private static TimeSpan CalculateRetryDelay(RetryPolicyRecord? retryPolicy, int attemptCount)

@@ -13,6 +13,7 @@ public static class ManagementApiEndpoints
         rules.MapGet("/", GetRulesAsync);
         rules.MapGet("/{id:int}", GetRuleByIdAsync);
         rules.MapPost("/", CreateRuleAsync);
+        rules.MapPost("/reorder", ReorderRulesAsync);
         rules.MapPut("/{id:int}", UpdateRuleAsync);
         rules.MapDelete("/{id:int}", DeleteRuleAsync);
 
@@ -31,6 +32,9 @@ public static class ManagementApiEndpoints
         delivery.MapGet("/work-items/{id:guid}", GetDeliveryWorkItemByIdAsync);
         delivery.MapPost("/work-items/{id:guid}/retry-now", RetryDeliveryWorkItemNowAsync);
         delivery.MapPost("/work-items/{id:guid}/cancel", CancelDeliveryWorkItemAsync);
+
+        var retryPolicies = api.MapGroup("/retry-policies");
+        retryPolicies.MapGet("/", GetRetryPoliciesAsync);
 
         var purge = api.MapGroup("/purge-policies");
         purge.MapGet("/", GetPurgePoliciesAsync);
@@ -119,6 +123,33 @@ public static class ManagementApiEndpoints
         return Results.Ok(existing);
     }
 
+    private static async Task<IResult> ReorderRulesAsync(ReorderRulesRequest input, AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (input.OrderedRuleIds.Count == 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]> { [nameof(input.OrderedRuleIds)] = ["At least one rule id is required."] });
+        }
+
+        var rules = await db.ProcessingRules
+            .Where(x => input.OrderedRuleIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        if (rules.Count != input.OrderedRuleIds.Count)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]> { [nameof(input.OrderedRuleIds)] = ["One or more rule ids were not found."] });
+        }
+
+        for (var index = 0; index < input.OrderedRuleIds.Count; index++)
+        {
+            var rule = rules[input.OrderedRuleIds[index]];
+            rule.Priority = (index + 1) * 10;
+            rule.UpdatedUtc = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok();
+    }
+
     private static async Task<IResult> DeleteRuleAsync(int id, AppDbContext db, CancellationToken cancellationToken)
     {
         var existing = await db.ProcessingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -151,6 +182,7 @@ public static class ManagementApiEndpoints
             DuplicatePolicy = input.DuplicatePolicy,
             UniqueNameMode = input.UniqueNameMode,
             UniqueNameAffix = input.UniqueNameAffix,
+            RetryPolicyId = input.RetryPolicyId,
             IsQueueOnFailure = input.IsQueueOnFailure,
             CreatedUtc = DateTime.UtcNow,
             UpdatedUtc = DateTime.UtcNow,
@@ -183,6 +215,7 @@ public static class ManagementApiEndpoints
         existing.DuplicatePolicy = input.DuplicatePolicy;
         existing.UniqueNameMode = input.UniqueNameMode;
         existing.UniqueNameAffix = input.UniqueNameAffix;
+        existing.RetryPolicyId = input.RetryPolicyId;
         existing.IsQueueOnFailure = input.IsQueueOnFailure;
         existing.UpdatedUtc = DateTime.UtcNow;
 
@@ -272,16 +305,43 @@ public static class ManagementApiEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> GetDeliveryWorkItemsAsync(AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> GetDeliveryWorkItemsAsync(AppDbContext db, string? status, string? search, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default)
     {
-        var data = await db.DeliveryWorkItems
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        var query = db.DeliveryWorkItems
             .AsNoTracking()
             .Include(x => x.Attempts)
+            .Include(x => x.ReceivedFile)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => x.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(x =>
+                x.DestinationType.Contains(term)
+                || x.Status.Contains(term)
+                || (x.LastErrorMessage != null && x.LastErrorMessage.Contains(term))
+                || (x.ReceivedFile != null && x.ReceivedFile.QueueName.Contains(term))
+                || (x.ReceivedFile != null && x.ReceivedFile.OriginalFileName != null && x.ReceivedFile.OriginalFileName.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
             .OrderByDescending(x => x.CreatedUtc)
-            .Take(500)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(data);
+        var result = new DeliveryWorkItemQueryResult(items, page, pageSize, totalCount, Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize)));
+
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> GetDeliveryWorkItemByIdAsync(Guid id, AppDbContext db, CancellationToken cancellationToken)
@@ -332,6 +392,12 @@ public static class ManagementApiEndpoints
     private static async Task<IResult> GetPurgePoliciesAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         var data = await db.PurgePolicies.AsNoTracking().OrderBy(x => x.Name).ToListAsync(cancellationToken);
+        return Results.Ok(data);
+    }
+
+    private static async Task<IResult> GetRetryPoliciesAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var data = await db.RetryPolicies.AsNoTracking().OrderBy(x => x.Name).ToListAsync(cancellationToken);
         return Results.Ok(data);
     }
 

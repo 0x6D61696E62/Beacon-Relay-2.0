@@ -13,12 +13,14 @@ public sealed class RuleFolderDestinationRecord
     public string DuplicatePolicy { get; set; } = DestinationDuplicatePolicy.UniqueName;
     public string? UniqueNameMode { get; set; } = UniqueNameModeValues.Counter;
     public string? UniqueNameAffix { get; set; }
+    public int? RetryPolicyId { get; set; }
 
     public bool IsQueueOnFailure { get; set; } = true;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 
     public ProcessingRuleRecord Rule { get; set; } = default!;
+    public RetryPolicyRecord? RetryPolicy { get; set; }
 }
 
 public static class SubfolderPatternTypeValues

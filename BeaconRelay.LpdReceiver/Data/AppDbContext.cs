@@ -79,11 +79,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         folderDestination.Property(x => x.UniqueNameAffix).HasMaxLength(64);
         folderDestination.HasIndex(x => x.RuleId);
         folderDestination.HasIndex(x => x.IsEnabled);
+        folderDestination.HasIndex(x => x.RetryPolicyId);
 
         folderDestination.HasOne(x => x.Rule)
             .WithMany(x => x.FolderDestinations)
             .HasForeignKey(x => x.RuleId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        folderDestination.HasOne(x => x.RetryPolicy)
+            .WithMany()
+            .HasForeignKey(x => x.RetryPolicyId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         var forwardDestination = modelBuilder.Entity<RuleForwardDestinationRecord>();
         forwardDestination.HasKey(x => x.Id);

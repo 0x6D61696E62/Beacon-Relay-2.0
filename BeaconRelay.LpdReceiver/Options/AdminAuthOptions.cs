@@ -8,4 +8,5 @@ public sealed class AdminAuthOptions
     public string Username { get; set; } = "admin";
     public string Password { get; set; } = "change-me";
     public string Realm { get; set; } = "Beacon Relay Admin";
+    public int SessionMinutes { get; set; } = 480;
 }
