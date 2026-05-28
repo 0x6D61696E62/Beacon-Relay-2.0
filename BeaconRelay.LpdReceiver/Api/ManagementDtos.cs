@@ -76,7 +76,8 @@ public sealed record DeliveryStatusResponse(
     DateTime? ResumeAtUtc,
     string? PauseReason,
     bool IsListening,
-    DeliveryQueueStats QueueStats);
+    DeliveryQueueStats QueueStats,
+    IReadOnlyList<RuleDestinationCountResult> TopRulesByDestinationCount);
 
 public sealed record DeliveryQueueStats(
     int Pending,
@@ -86,3 +87,10 @@ public sealed record DeliveryQueueStats(
     int Failed,
     int Canceled,
     int Total);
+
+public sealed record RuleDestinationCountResult(
+    int RuleId,
+    string RuleName,
+    int FolderDestinationCount,
+    int ForwardDestinationCount,
+    int TotalDestinationCount);

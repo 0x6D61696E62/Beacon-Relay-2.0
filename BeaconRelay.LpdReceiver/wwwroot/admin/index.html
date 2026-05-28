@@ -474,16 +474,16 @@
         <h2>Settings Menu</h2>
         <div class="hint">Select a module to configure and save.</div>
         <div class="nav-links">
-          <button class="active" data-view-target="rules">Rules and Matching</button>
+          <button class="active" data-view-target="status">System Status</button>
+          <button data-view-target="rules">Rules and Matching</button>
           <button data-view-target="folder">Folder Routing</button>
           <button data-view-target="lpd">LPD Forwarding</button>
           <button data-view-target="delivery">Delivery Queue</button>
-          <button data-view-target="status">System Status</button>
         </div>
       </aside>
 
       <div class="content-area">
-        <section class="view-section active" data-view="rules">
+        <section class="view-section" data-view="rules">
           <section class="card">
             <h2>Rules</h2>
             <div class="body">
@@ -718,14 +718,20 @@
                 <div>
                   <table>
                     <thead>
-                      <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+                      <tr><th>Status</th><th>Rule + Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
                     </thead>
                     <tbody id="queueBody"></tbody>
                   </table>
                   <div class="toolbar">
+                    <button id="firstPage">First</button>
                     <button id="prevPage">Previous</button>
                     <div id="pageSummary" class="muted"></div>
+                    <label>Jump to
+                      <input id="queuePageInput" type="number" min="1" value="1" style="width:84px;">
+                    </label>
+                    <button id="jumpPage">Go</button>
                     <button id="nextPage">Next</button>
+                    <button id="lastPage">Last</button>
                   </div>
                   <div class="error" id="queueError"></div>
                 </div>
@@ -740,7 +746,7 @@
         </section>
 
         <!-- ── Status Page ───────────────────────────────────────── -->
-        <section class="view-section" data-view="status">
+        <section class="view-section active" data-view="status">
           <div class="status-grid">
 
             <!-- Dispatcher State + Pause Controls -->
@@ -798,6 +804,21 @@
                   <span class="muted">Total work items: </span>
                   <strong id="queueStatTotal">–</strong>
                 </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <h2>Top Rules By Destinations</h2>
+              <div class="body">
+                <div class="hint">Top 10 rules with the highest total configured destinations.</div>
+                <table>
+                  <thead>
+                    <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th></tr>
+                  </thead>
+                  <tbody id="statusTopRulesBody">
+                    <tr><td colspan="4" class="muted">No data yet.</td></tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
@@ -899,6 +920,19 @@
       return policy ? policy.name : ('Policy #' + policyId);
     }
 
+    function formatLocalTime(value) {
+      if (!value) {
+        return '-';
+      }
+
+      const timestamp = new Date(value);
+      if (Number.isNaN(timestamp.getTime())) {
+        return '-';
+      }
+
+      return timestamp.toLocaleString();
+    }
+
     function setRuleOptions(selectId) {
       const html = state.rules.map(rule => '<option value="' + rule.id + '">' + rule.name + '</option>').join('');
       el(selectId).innerHTML = html || '<option value="">No rules</option>';
@@ -912,6 +946,26 @@
     function flattenDestinations() {
       state.folderDestinations = state.rules.flatMap(rule => (rule.folderDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
       state.forwardDestinations = state.rules.flatMap(rule => (rule.forwardDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
+    }
+
+    function destinationSummary(item) {
+      const originalRule = ruleName(item.ruleId);
+
+      if (String(item.destinationType).toLowerCase() === 'folder') {
+        const folder = state.folderDestinations.find(x => x.id === item.destinationId);
+        const destination = folder ? ('Folder: ' + folder.rootFolder) : ('Folder #' + item.destinationId);
+        return originalRule + ' -> ' + destination;
+      }
+
+      if (String(item.destinationType).toLowerCase() === 'forwardlpd') {
+        const forward = state.forwardDestinations.find(x => x.id === item.destinationId);
+        const destination = forward
+          ? ('LPD: ' + forward.host + ':' + forward.port + ' / ' + forward.outboundQueueName)
+          : ('LPD #' + item.destinationId);
+        return originalRule + ' -> ' + destination;
+      }
+
+      return originalRule + ' -> ' + item.destinationType + ' #' + item.destinationId;
     }
 
     function renderRules() {
@@ -968,9 +1022,9 @@
       el('queueBody').innerHTML = state.workItems.map(item =>
         '<tr>' +
           '<td>' + statusPill(item.status) + '</td>' +
-          '<td>' + item.destinationType + ' #' + item.destinationId + '</td>' +
+          '<td>' + destinationSummary(item) + '</td>' +
           '<td>' + item.attemptCount + '</td>' +
-          '<td>' + new Date(item.nextAttemptUtc).toLocaleString() + '</td>' +
+          '<td>' + formatLocalTime(item.nextAttemptUtc) + '</td>' +
           '<td class="actions">' +
             '<button onclick="showDetails(\'' + item.id + '\')">Details</button>' +
             '<button onclick="retryItem(\'' + item.id + '\')">Retry</button>' +
@@ -979,8 +1033,12 @@
       ).join('');
 
       el('pageSummary').textContent = 'Page ' + state.queuePage + ' of ' + state.queueTotalPages;
+      el('queuePageInput').value = String(state.queuePage);
+      el('queuePageInput').max = String(state.queueTotalPages);
+      el('firstPage').disabled = state.queuePage <= 1;
       el('prevPage').disabled = state.queuePage <= 1;
       el('nextPage').disabled = state.queuePage >= state.queueTotalPages;
+      el('lastPage').disabled = state.queuePage >= state.queueTotalPages;
     }
 
     async function loadAuthStatus() {
@@ -1178,6 +1236,12 @@
       }
     }
 
+    async function goToQueuePage(page) {
+      const normalized = Math.max(1, Math.min(state.queueTotalPages, Number(page) || 1));
+      state.queuePage = normalized;
+      await loadQueue();
+    }
+
     async function showDetails(id) {
       try {
         state.queueSelectedId = id;
@@ -1186,12 +1250,12 @@
         const attemptHtml = attempts.length === 0
           ? '<div class="muted">No attempts recorded yet.</div>'
           : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' + attempts.map(attempt =>
-              '<tr><td>' + attempt.attemptNumber + '</td><td>' + statusPill(attempt.outcome) + '</td><td>' + new Date(attempt.startedUtc).toLocaleString() + '</td><td>' + (attempt.errorMessage || '') + '</td></tr>'
+              '<tr><td>' + attempt.attemptNumber + '</td><td>' + statusPill(attempt.outcome) + '</td><td>' + formatLocalTime(attempt.startedUtc) + '</td><td>' + (attempt.errorMessage || '') + '</td></tr>'
             ).join('') + '</tbody></table>';
         el('queueDetails').innerHTML =
           '<div><strong>Work Item:</strong> ' + item.id + '</div>' +
           '<div><strong>Status:</strong> ' + statusPill(item.status) + '</div>' +
-          '<div><strong>Destination:</strong> ' + item.destinationType + ' #' + item.destinationId + '</div>' +
+          '<div><strong>Destination:</strong> ' + destinationSummary(item) + '</div>' +
           '<div><strong>Attempts:</strong> ' + item.attemptCount + '</div>' +
           '<div style="margin-top:10px;">' + attemptHtml + '</div>';
       } catch (err) {
@@ -1326,6 +1390,18 @@
       });
       el('queueStatTotal').textContent = qs.total != null ? String(qs.total) : '–';
 
+      const topRules = status.topRulesByDestinationCount || [];
+      el('statusTopRulesBody').innerHTML = topRules.length === 0
+        ? '<tr><td colspan="4" class="muted">No rules with destinations yet.</td></tr>'
+        : topRules.map(entry =>
+            '<tr>' +
+              '<td>' + entry.ruleName + '</td>' +
+              '<td>' + entry.folderDestinationCount + '</td>' +
+              '<td>' + entry.forwardDestinationCount + '</td>' +
+              '<td><strong>' + entry.totalDestinationCount + '</strong></td>' +
+            '</tr>'
+          ).join('');
+
       // Listener badge
       const listenerBadge = el('listenerBadge');
       listenerBadge.className = 'dispatcher-badge ' + (status.isListening ? 'running' : 'paused');
@@ -1414,20 +1490,31 @@
     el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queuePageSize').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('firstPage').addEventListener('click', async () => { await goToQueuePage(1); });
     el('prevPage').addEventListener('click', async () => { if (state.queuePage > 1) { state.queuePage -= 1; await loadQueue(); } });
     el('nextPage').addEventListener('click', async () => { if (state.queuePage < state.queueTotalPages) { state.queuePage += 1; await loadQueue(); } });
+    el('lastPage').addEventListener('click', async () => { await goToQueuePage(state.queueTotalPages); });
+    el('jumpPage').addEventListener('click', async () => { await goToQueuePage(el('queuePageInput').value); });
+    el('queuePageInput').addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        await goToQueuePage(el('queuePageInput').value);
+      }
+    });
     el('logoutButton').addEventListener('click', logout);
     el('pauseBtn').addEventListener('click', pauseDelivery);
     el('resumeBtn').addEventListener('click', resumeDelivery);
     el('refreshStatus').addEventListener('click', loadStatus);
 
     (async function init() {
+      setActiveView('status');
       resetRuleForm();
       await loadRetryPolicies();
       resetFolderForm();
       resetForwardForm();
       await loadRules();
       await loadQueue();
+      await loadStatus();
       await loadAuthStatus();
     })();
   </script>

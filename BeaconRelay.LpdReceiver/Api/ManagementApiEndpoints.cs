@@ -381,13 +381,16 @@ public static class ManagementApiEndpoints
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        page = Math.Min(page, totalPages);
+
         var items = await query
             .OrderByDescending(x => x.CreatedUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        var result = new DeliveryWorkItemQueryResult(items, page, pageSize, totalCount, Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize)));
+        var result = new DeliveryWorkItemQueryResult(items, page, pageSize, totalCount, totalPages);
 
         return Results.Ok(result);
     }
@@ -471,13 +474,38 @@ public static class ManagementApiEndpoints
                 stats.Canceled,
                 stats.Total);
 
+        var topRuleRows = await db.ProcessingRules
+            .AsNoTracking()
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                FolderDestinationCount = x.FolderDestinations.Count,
+                ForwardDestinationCount = x.ForwardDestinations.Count,
+                TotalDestinationCount = x.FolderDestinations.Count + x.ForwardDestinations.Count
+            })
+            .OrderByDescending(x => x.TotalDestinationCount)
+            .ThenBy(x => x.Name)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var topRules = topRuleRows
+            .Select(x => new RuleDestinationCountResult(
+                x.Id,
+                x.Name,
+                x.FolderDestinationCount,
+                x.ForwardDestinationCount,
+                x.TotalDestinationCount))
+            .ToList();
+
         return Results.Ok(new DeliveryStatusResponse(
             snapshot.IsPaused,
             snapshot.PausedAtUtc,
             snapshot.ResumeAtUtc,
             snapshot.Reason,
             listenerState.IsListening,
-            queueStats));
+            queueStats,
+            topRules));
     }
 
     private static async Task<IResult> PauseDeliveryAsync(
