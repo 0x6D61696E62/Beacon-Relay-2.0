@@ -1,5 +1,7 @@
 namespace BeaconRelay.LpdReceiver.Data;
 
+using System.Text.Json.Serialization;
+
 public sealed class DeliveryWorkItemRecord
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -23,8 +25,12 @@ public sealed class DeliveryWorkItemRecord
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 
+    [JsonIgnore]
     public ReceivedFileRecord ReceivedFile { get; set; } = default!;
+
+    [JsonIgnore]
     public ProcessingRuleRecord Rule { get; set; } = default!;
+
     public ICollection<DeliveryAttemptRecord> Attempts { get; set; } = [];
 }
 

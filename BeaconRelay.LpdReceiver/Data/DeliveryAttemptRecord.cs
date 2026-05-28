@@ -1,5 +1,7 @@
 namespace BeaconRelay.LpdReceiver.Data;
 
+using System.Text.Json.Serialization;
+
 public sealed class DeliveryAttemptRecord
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -19,6 +21,7 @@ public sealed class DeliveryAttemptRecord
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
+    [JsonIgnore]
     public DeliveryWorkItemRecord WorkItem { get; set; } = default!;
 }
 

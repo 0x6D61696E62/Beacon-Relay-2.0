@@ -268,6 +268,80 @@ public sealed class ApiValidationTests
         Assert.Contains(uniqueRuleName, getRulesBody, StringComparison.OrdinalIgnoreCase);
         }
 
+            [Fact]
+            public async Task GetDeliveryWorkItems_WithAttempts_DoesNotFailWithSerializationCycle()
+            {
+                await using var factory = new BeaconWebAppFactory();
+                using var client = factory.CreateClient();
+
+                using (var scope = factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    var received = new ReceivedFileRecord
+                    {
+                        QueueName = "main",
+                        RemoteHost = "127.0.0.1",
+                        RemotePort = 515,
+                        Status = FileRecordStatus.Received,
+                        ReceivedUtc = DateTime.UtcNow,
+                        CreatedUtc = DateTime.UtcNow,
+                    };
+
+                    var rule = new ProcessingRuleRecord
+                    {
+                        Name = $"delivery-cycle-rule-{Guid.NewGuid():N}",
+                        Priority = 1,
+                        IsEnabled = true,
+                        MatchOperator = RuleMatchOperator.And,
+                        QueueMatchType = QueueMatchTypeValues.Exact,
+                        QueueMatchValue = "main",
+                        StopProcessingOnMatch = false,
+                        CreatedUtc = DateTime.UtcNow,
+                        UpdatedUtc = DateTime.UtcNow,
+                    };
+
+                    db.ReceivedFiles.Add(received);
+                    db.ProcessingRules.Add(rule);
+                    await db.SaveChangesAsync();
+
+                    var workItem = new DeliveryWorkItemRecord
+                    {
+                        ReceivedFileId = received.Id,
+                        RuleId = rule.Id,
+                        DestinationType = DeliveryDestinationType.Folder,
+                        DestinationId = 1,
+                        Status = DeliveryWorkItemStatus.Pending,
+                        Priority = 10,
+                        AttemptCount = 1,
+                        NextAttemptUtc = DateTime.UtcNow,
+                        CreatedUtc = DateTime.UtcNow,
+                        UpdatedUtc = DateTime.UtcNow,
+                    };
+
+                    db.DeliveryWorkItems.Add(workItem);
+                    await db.SaveChangesAsync();
+
+                    db.DeliveryAttempts.Add(new DeliveryAttemptRecord
+                    {
+                        WorkItemId = workItem.Id,
+                        AttemptNumber = 1,
+                        StartedUtc = DateTime.UtcNow,
+                        Outcome = DeliveryAttemptOutcome.Failed,
+                        ErrorCode = "Test",
+                        ErrorMessage = "Test failure",
+                    });
+
+                    await db.SaveChangesAsync();
+                }
+
+                using var response = await client.GetAsync("/api/delivery/work-items?page=1&pageSize=25");
+                var body = await response.Content.ReadAsStringAsync();
+
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Contains("items", body, StringComparison.OrdinalIgnoreCase);
+            }
+
     private sealed class BeaconWebAppFactory(bool enableAdminAuth = false) : WebApplicationFactory<Program>
     {
         private readonly InMemoryDatabaseRoot _databaseRoot = new();
