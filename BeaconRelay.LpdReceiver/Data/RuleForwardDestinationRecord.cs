@@ -1,5 +1,7 @@
 namespace BeaconRelay.LpdReceiver.Data;
 
+using System.Text.Json.Serialization;
+
 public sealed class RuleForwardDestinationRecord
 {
     public int Id { get; set; }
@@ -16,6 +18,7 @@ public sealed class RuleForwardDestinationRecord
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 
+    [JsonIgnore]
     public ProcessingRuleRecord Rule { get; set; } = default!;
     public RetryPolicyRecord? RetryPolicy { get; set; }
 }

@@ -5,6 +5,7 @@ using BeaconRelay.LpdReceiver.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -185,8 +186,93 @@ public sealed class ApiValidationTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+        [Fact]
+        public async Task CreateFolderDestination_MissingRuleIdReference_ReturnsBadRequest()
+        {
+                await using var factory = new BeaconWebAppFactory();
+                using var client = factory.CreateClient();
+
+                var payload = """
+                {
+                    "ruleId": 999,
+                    "isEnabled": true,
+                    "destinationOrder": 1,
+                    "rootFolder": "data/routed",
+                    "subfolderPatternType": "DotNetDateFormat",
+                    "subfolderPattern": "yyyy/MM/dd",
+                    "duplicatePolicy": "UniqueName",
+                    "uniqueNameMode": "Counter",
+                    "uniqueNameAffix": null,
+                    "retryPolicyId": null,
+                    "isQueueOnFailure": true
+                }
+                """;
+
+                using var response = await client.PostAsync("/api/folder-destinations", new StringContent(payload, Encoding.UTF8, "application/json"));
+                var body = await response.Content.ReadAsStringAsync();
+
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                Assert.Contains("RuleId", body, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("does not exist", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task GetRules_WithDestinations_DoesNotFailWithSerializationCycle()
+        {
+                await using var factory = new BeaconWebAppFactory();
+                using var client = factory.CreateClient();
+
+                var uniqueRuleName = $"cycle-check-rule-{Guid.NewGuid():N}";
+
+                using (var scope = factory.Services.CreateScope())
+                {
+                        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var rule = new ProcessingRuleRecord
+                        {
+                                Name = uniqueRuleName,
+                                Priority = 1,
+                                IsEnabled = true,
+                                MatchOperator = RuleMatchOperator.And,
+                                QueueMatchType = QueueMatchTypeValues.Exact,
+                                QueueMatchValue = "main",
+                                StopProcessingOnMatch = false,
+                                CreatedUtc = DateTime.UtcNow,
+                                UpdatedUtc = DateTime.UtcNow,
+                        };
+
+                        db.ProcessingRules.Add(rule);
+                        await db.SaveChangesAsync();
+
+                        db.RuleFolderDestinations.Add(new RuleFolderDestinationRecord
+                        {
+                                RuleId = rule.Id,
+                                IsEnabled = true,
+                                DestinationOrder = 1,
+                                RootFolder = "data/routed",
+                                SubfolderPatternType = SubfolderPatternTypeValues.DotNetDateFormat,
+                                SubfolderPattern = "yyyy/MM/dd",
+                                DuplicatePolicy = DestinationDuplicatePolicy.UniqueName,
+                                UniqueNameMode = UniqueNameModeValues.Counter,
+                                IsQueueOnFailure = true,
+                                CreatedUtc = DateTime.UtcNow,
+                                UpdatedUtc = DateTime.UtcNow,
+                        });
+
+                        await db.SaveChangesAsync();
+                }
+
+                using var getRulesResponse = await client.GetAsync("/api/rules");
+                var getRulesBody = await getRulesResponse.Content.ReadAsStringAsync();
+
+                Assert.Equal(HttpStatusCode.OK, getRulesResponse.StatusCode);
+        Assert.Contains(uniqueRuleName, getRulesBody, StringComparison.OrdinalIgnoreCase);
+        }
+
     private sealed class BeaconWebAppFactory(bool enableAdminAuth = false) : WebApplicationFactory<Program>
     {
+        private readonly InMemoryDatabaseRoot _databaseRoot = new();
+        private readonly string _databaseName = $"beacon-tests-{Guid.NewGuid():N}";
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
@@ -208,7 +294,7 @@ public sealed class ApiValidationTests
                     services.Remove(dbDescriptor);
                 }
 
-                services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase($"beacon-tests-{Guid.NewGuid():N}"));
+                services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase(_databaseName, _databaseRoot));
 
                 using var scope = services.BuildServiceProvider().CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

@@ -43,8 +43,55 @@
       max-width: 1360px;
       margin: 0 auto;
       padding: 16px;
+    }
+    .layout {
       display: grid;
       gap: 16px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 980px) {
+      .layout { grid-template-columns: 260px 1fr; }
+    }
+    .side-nav {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px var(--shadow);
+      padding: 12px;
+      height: fit-content;
+      position: sticky;
+      top: 16px;
+    }
+    .side-nav h2 {
+      font-size: 0.95rem;
+      margin: 0 0 10px;
+      color: #5c4327;
+    }
+    .nav-links {
+      display: grid;
+      gap: 8px;
+    }
+    .nav-links button {
+      text-align: left;
+      width: 100%;
+      font-weight: 600;
+      background: #fff8ee;
+    }
+    .nav-links button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .content-area {
+      display: grid;
+      gap: 16px;
+    }
+    .view-section {
+      display: none;
+      gap: 16px;
+    }
+    .view-section.active {
+      display: grid;
     }
     .grid-2 {
       display: grid;
@@ -177,254 +224,275 @@
   </header>
 
   <main>
-    <section class="card">
-      <h2>Rules</h2>
-      <div class="body">
-        <div class="row-3">
-          <label>Rule Name
-            <input id="ruleName" value="New Rule">
-          </label>
-          <label>Priority
-            <input id="rulePriority" type="number" value="100" min="0">
-          </label>
-          <label>Queue Match Type
-            <select id="queueType">
-              <option>Exact</option>
-              <option>Wildcard</option>
-              <option>Regex</option>
-            </select>
-          </label>
+    <div class="layout">
+      <aside class="side-nav">
+        <h2>Settings Menu</h2>
+        <div class="nav-links">
+          <button class="active" data-view-target="rules">Rules</button>
+          <button data-view-target="folder">Folder</button>
+          <button data-view-target="lpd">LPD</button>
+          <button data-view-target="delivery">Delivery Queue</button>
         </div>
-        <div class="row-3">
-          <label>Queue Match Value
-            <input id="queueValue" value="main">
-          </label>
-          <label>Match Operator
-            <select id="matchOperator">
-              <option>And</option>
-              <option>Or</option>
-            </select>
-          </label>
-          <label>Status
-            <select id="ruleEnabled">
-              <option value="true">Enabled</option>
-              <option value="false">Disabled</option>
-            </select>
-          </label>
-        </div>
-        <div class="toolbar">
-          <button class="primary" id="saveRule">Save Rule</button>
-          <button id="resetRule">Reset Form</button>
-          <button class="refresh" id="refreshRules">Refresh Rules</button>
-          <button id="saveRuleOrder">Save Current Rule Order</button>
-        </div>
-        <div class="hint">Use Up and Down to reorder rules before saving the new priority order.</div>
-        <div class="error" id="ruleError"></div>
-        <table>
-          <thead>
-            <tr><th>Priority</th><th>Name</th><th>Match</th><th>Destinations</th><th>Status</th><th>Action</th></tr>
-          </thead>
-          <tbody id="rulesBody"></tbody>
-        </table>
-      </div>
-    </section>
+      </aside>
 
-    <div class="grid-2">
-      <section class="card">
-        <h2>Folder Destinations</h2>
-        <div class="body">
-          <div class="row">
-            <label>Rule
-              <select id="folderRuleId"></select>
-            </label>
-            <label>Destination Order
-              <input id="folderOrder" type="number" value="1" min="0">
-            </label>
-          </div>
-          <div class="row">
-            <label>Root Folder
-              <input id="folderRoot" value="data/routed">
-            </label>
-            <label>Subfolder Pattern Type
-              <select id="folderPatternType">
-                <option>DotNetDateFormat</option>
-                <option>TokenTemplate</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Subfolder Pattern
-              <input id="folderPattern" value="yyyy/MM/dd">
-            </label>
-            <label>Duplicate Policy
-              <select id="folderDuplicatePolicy">
-                <option>Overwrite</option>
-                <option>Fail</option>
-                <option selected>UniqueName</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Unique Name Mode
-              <select id="folderUniqueNameMode">
-                <option selected>Counter</option>
-                <option>Timestamp</option>
-                <option>Guid</option>
-                <option>HashFragment</option>
-              </select>
-            </label>
-            <label>Retry Policy
-              <select id="folderRetryPolicyId"></select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Unique Affix
-              <input id="folderUniqueAffix" placeholder="copy">
-            </label>
-            <label>Retry On Failure
-              <select id="folderRetryOnFailure">
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Enabled
-              <select id="folderEnabled">
-                <option value="true">Enabled</option>
-                <option value="false">Disabled</option>
-              </select>
-            </label>
-          </div>
-          <div class="toolbar">
-            <button class="primary" id="saveFolder">Save Folder Destination</button>
-            <button id="resetFolder">Reset Form</button>
-          </div>
-          <div class="error" id="folderError"></div>
-          <table>
-            <thead>
-              <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Retry</th><th>Action</th></tr>
-            </thead>
-            <tbody id="folderBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>LPD Forward Destinations</h2>
-        <div class="body">
-          <div class="row">
-            <label>Rule
-              <select id="forwardRuleId"></select>
-            </label>
-            <label>Destination Order
-              <input id="forwardOrder" type="number" value="1" min="0">
-            </label>
-          </div>
-          <div class="row">
-            <label>Host
-              <input id="forwardHost" value="127.0.0.1">
-            </label>
-            <label>Port
-              <input id="forwardPort" type="number" value="515" min="1" max="65535">
-            </label>
-          </div>
-          <div class="row">
-            <label>Outbound Queue Name
-              <input id="forwardQueue" value="remote-queue">
-            </label>
-            <label>Compression
-              <select id="forwardCompression">
-                <option>None</option>
-                <option>ZipArchive</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Payload Mode
-              <select id="forwardPayloadMode">
-                <option>StoredFile</option>
-                <option>OriginalFile</option>
-              </select>
-            </label>
-            <label>Retry Policy
-              <select id="forwardRetryPolicyId"></select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Enabled
-              <select id="forwardEnabled">
-                <option value="true">Enabled</option>
-                <option value="false">Disabled</option>
-              </select>
-            </label>
-          </div>
-          <div class="toolbar">
-            <button class="primary" id="saveForward">Save Forward Destination</button>
-            <button id="resetForward">Reset Form</button>
-          </div>
-          <div class="error" id="forwardError"></div>
-          <table>
-            <thead>
-              <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Retry</th><th>Action</th></tr>
-            </thead>
-            <tbody id="forwardBody"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-
-    <section class="card">
-      <h2>Delivery Queue</h2>
-      <div class="body">
-        <div class="toolbar">
-          <label>Status
-            <select id="queueStatusFilter">
-              <option value="All">All</option>
-              <option>Pending</option>
-              <option>InProgress</option>
-              <option>RetryScheduled</option>
-              <option>Succeeded</option>
-              <option>Failed</option>
-              <option>Canceled</option>
-            </select>
-          </label>
-          <label>Search
-            <input id="queueSearch" placeholder="queue, file, destination, error">
-          </label>
-          <label>Page Size
-            <select id="queuePageSize">
-              <option>10</option>
-              <option selected>25</option>
-              <option>50</option>
-              <option>100</option>
-            </select>
-          </label>
-          <button class="refresh" id="refreshQueue">Refresh Queue</button>
-        </div>
-        <div class="grid-2">
-          <div>
-            <table>
-              <thead>
-                <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
-              </thead>
-              <tbody id="queueBody"></tbody>
-            </table>
-            <div class="toolbar">
-              <button id="prevPage">Previous</button>
-              <div id="pageSummary" class="muted"></div>
-              <button id="nextPage">Next</button>
+      <div class="content-area">
+        <section class="view-section active" data-view="rules">
+          <section class="card">
+            <h2>Rules</h2>
+            <div class="body">
+              <div class="row-3">
+                <label>Rule Name
+                  <input id="ruleName" value="" placeholder="Enter a unique rule name">
+                </label>
+                <label>Priority
+                  <input id="rulePriority" type="number" value="100" min="0">
+                </label>
+                <label>Queue Match Type
+                  <select id="queueType">
+                    <option>Exact</option>
+                    <option>Wildcard</option>
+                    <option>Regex</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Queue Match Value
+                  <input id="queueValue" value="main">
+                </label>
+                <label>Match Operator
+                  <select id="matchOperator">
+                    <option>And</option>
+                    <option>Or</option>
+                  </select>
+                </label>
+                <label>Status
+                  <select id="ruleEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveRule">Save Rule</button>
+                <button id="resetRule">Reset Form</button>
+                <button class="refresh" id="refreshRules">Refresh Rules</button>
+                <button id="saveRuleOrder">Save Current Rule Order</button>
+              </div>
+              <div class="hint">Use Up and Down to reorder rules before saving the new priority order.</div>
+              <div class="error" id="ruleError"></div>
+              <table>
+                <thead>
+                  <tr><th>Priority</th><th>Name</th><th>Match</th><th>Destinations</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="rulesBody"></tbody>
+              </table>
             </div>
-            <div class="error" id="queueError"></div>
-          </div>
-          <div class="details-panel">
-            <h3>Selected Work Item</h3>
-            <div class="hint">Choose Details on a work item to inspect attempt history.</div>
-            <div id="queueDetails" class="muted">No work item selected.</div>
-          </div>
-        </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="folder">
+          <section class="card">
+            <h2>Folder Destinations</h2>
+            <div class="body">
+              <div class="row">
+                <label>Rule
+                  <select id="folderRuleId"></select>
+                </label>
+                <label>Destination Order
+                  <input id="folderOrder" type="number" value="1" min="0">
+                </label>
+              </div>
+              <div class="row">
+                <label>Root Folder
+                  <input id="folderRoot" value="data/routed">
+                </label>
+                <label>Subfolder Pattern Type
+                  <select id="folderPatternType">
+                    <option>DotNetDateFormat</option>
+                    <option>TokenTemplate</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Subfolder Pattern
+                  <input id="folderPattern" value="yyyy/MM/dd">
+                </label>
+                <label>Duplicate Policy
+                  <select id="folderDuplicatePolicy">
+                    <option>Overwrite</option>
+                    <option>Fail</option>
+                    <option selected>UniqueName</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Unique Name Mode
+                  <select id="folderUniqueNameMode">
+                    <option selected>Counter</option>
+                    <option>Timestamp</option>
+                    <option>Guid</option>
+                    <option>HashFragment</option>
+                  </select>
+                </label>
+                <label>Retry Policy
+                  <select id="folderRetryPolicyId"></select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Unique Affix
+                  <input id="folderUniqueAffix" placeholder="copy">
+                </label>
+                <label>Retry On Failure
+                  <select id="folderRetryOnFailure">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Enabled
+                  <select id="folderEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveFolder">Save Folder Destination</button>
+                <button id="resetFolder">Reset Form</button>
+              </div>
+              <div class="error" id="folderError"></div>
+              <table>
+                <thead>
+                  <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Retry</th><th>Action</th></tr>
+                </thead>
+                <tbody id="folderBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="lpd">
+          <section class="card">
+            <h2>LPD Forward Destinations</h2>
+            <div class="body">
+              <div class="hint">Manage outbound LPD forwarding targets and retry behavior.</div>
+              <div class="row">
+                <label>Rule
+                  <select id="forwardRuleId"></select>
+                </label>
+                <label>Destination Order
+                  <input id="forwardOrder" type="number" value="1" min="0">
+                </label>
+              </div>
+              <div class="row">
+                <label>Host
+                  <input id="forwardHost" value="127.0.0.1">
+                </label>
+                <label>Port
+                  <input id="forwardPort" type="number" value="515" min="1" max="65535">
+                </label>
+              </div>
+              <div class="row">
+                <label>Outbound Queue Name
+                  <input id="forwardQueue" value="remote-queue">
+                </label>
+                <label>Compression
+                  <select id="forwardCompression">
+                    <option>None</option>
+                    <option>ZipArchive</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Payload Mode
+                  <select id="forwardPayloadMode">
+                    <option>StoredFile</option>
+                    <option>OriginalFile</option>
+                  </select>
+                </label>
+                <label>Retry Policy
+                  <select id="forwardRetryPolicyId"></select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Enabled
+                  <select id="forwardEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveForward">Save Forward Destination</button>
+                <button id="resetForward">Reset Form</button>
+              </div>
+              <div class="error" id="forwardError"></div>
+              <table>
+                <thead>
+                  <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Retry</th><th>Action</th></tr>
+                </thead>
+                <tbody id="forwardBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="delivery">
+          <section class="card">
+            <h2>Delivery Queue</h2>
+            <div class="body">
+              <div class="toolbar">
+                <label>Status
+                  <select id="queueStatusFilter">
+                    <option value="All">All</option>
+                    <option>Pending</option>
+                    <option>InProgress</option>
+                    <option>RetryScheduled</option>
+                    <option>Succeeded</option>
+                    <option>Failed</option>
+                    <option>Canceled</option>
+                  </select>
+                </label>
+                <label>Search
+                  <input id="queueSearch" placeholder="queue, file, destination, error">
+                </label>
+                <label>Page Size
+                  <select id="queuePageSize">
+                    <option>10</option>
+                    <option selected>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                  </select>
+                </label>
+                <button class="refresh" id="refreshQueue">Refresh Queue</button>
+              </div>
+              <div class="grid-2">
+                <div>
+                  <table>
+                    <thead>
+                      <tr><th>Status</th><th>Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="queueBody"></tbody>
+                  </table>
+                  <div class="toolbar">
+                    <button id="prevPage">Previous</button>
+                    <div id="pageSummary" class="muted"></div>
+                    <button id="nextPage">Next</button>
+                  </div>
+                  <div class="error" id="queueError"></div>
+                </div>
+                <div class="details-panel">
+                  <h3>Selected Work Item</h3>
+                  <div class="hint">Choose Details on a work item to inspect attempt history.</div>
+                  <div id="queueDetails" class="muted">No work item selected.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
       </div>
-    </section>
+    </div>
   </main>
 
   <script>
@@ -448,10 +516,29 @@
       let payload = null;
       try { payload = await response.json(); } catch (_) {}
       if (!response.ok) {
-        const detail = payload ? JSON.stringify(payload) : response.statusText;
-        throw new Error(detail);
+        const detail = formatApiError(payload, response.statusText);
+        const error = new Error(detail);
+        error.payload = payload;
+        throw error;
       }
       return payload;
+    }
+
+    function formatApiError(payload, fallbackText) {
+      if (!payload || typeof payload !== 'object') {
+        return fallbackText || 'Request failed.';
+      }
+
+      const errors = payload.errors;
+      if (errors && typeof errors === 'object') {
+        const messages = Object.entries(errors)
+          .flatMap(([field, fieldMessages]) => (fieldMessages || []).map(msg => field + ': ' + msg));
+        if (messages.length > 0) {
+          return messages.join('\n');
+        }
+      }
+
+      return payload.title || payload.detail || fallbackText || 'Request failed.';
     }
 
     function statusPill(status) {
@@ -549,10 +636,10 @@
           '</td>' +
         '</tr>'
       ).join('');
-+
-+      el('pageSummary').textContent = 'Page ' + state.queuePage + ' of ' + state.queueTotalPages;
-+      el('prevPage').disabled = state.queuePage <= 1;
-+      el('nextPage').disabled = state.queuePage >= state.queueTotalPages;
+
+      el('pageSummary').textContent = 'Page ' + state.queuePage + ' of ' + state.queueTotalPages;
+      el('prevPage').disabled = state.queuePage <= 1;
+      el('nextPage').disabled = state.queuePage >= state.queueTotalPages;
     }
 
     async function loadAuthStatus() {
@@ -584,7 +671,7 @@
 
     function resetRuleForm() {
       state.editingRuleId = null;
-      el('ruleName').value = 'New Rule';
+      el('ruleName').value = '';
       el('rulePriority').value = 100;
       el('queueType').value = 'Exact';
       el('queueValue').value = 'main';
@@ -620,8 +707,10 @@
 
     async function saveRule() {
       try {
+        const ruleNameInput = el('ruleName').value.trim();
+
         const request = {
-          name: el('ruleName').value,
+          name: ruleNameInput,
           priority: Number(el('rulePriority').value),
           isEnabled: el('ruleEnabled').value === 'true',
           matchOperator: el('matchOperator').value,
@@ -641,7 +730,17 @@
         resetRuleForm();
         await loadRules();
       } catch (err) {
-        el('ruleError').textContent = 'Save failed: ' + err.message;
+        if (!state.editingRuleId && typeof el('ruleName').value === 'string') {
+          const attemptedName = el('ruleName').value.trim().toLowerCase();
+          const existing = state.rules.find(x => (x.name || '').toLowerCase() === attemptedName);
+          if (existing && String(err.message || '').toLowerCase().includes('already exists')) {
+            editRule(existing.id);
+            el('ruleError').textContent = 'A rule with this name already exists. Loaded existing rule for editing.';
+            return;
+          }
+        }
+
+        el('ruleError').textContent = 'Save failed:\n' + err.message;
       }
     }
 
@@ -851,6 +950,22 @@
     window.deleteForward = deleteForward;
     window.showDetails = showDetails;
     window.retryItem = retryItem;
+
+    function setActiveView(viewName) {
+      document.querySelectorAll('[data-view]').forEach(section => {
+        section.classList.toggle('active', section.getAttribute('data-view') === viewName);
+      });
+      document.querySelectorAll('[data-view-target]').forEach(button => {
+        button.classList.toggle('active', button.getAttribute('data-view-target') === viewName);
+      });
+    }
+
+    document.querySelectorAll('[data-view-target]').forEach(button => {
+      button.addEventListener('click', () => {
+        const target = button.getAttribute('data-view-target') || 'rules';
+        setActiveView(target);
+      });
+    });
 
     el('saveRule').addEventListener('click', saveRule);
     el('resetRule').addEventListener('click', resetRuleForm);

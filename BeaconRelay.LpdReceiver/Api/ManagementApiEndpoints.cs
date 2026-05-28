@@ -69,6 +69,11 @@ public static class ManagementApiEndpoints
     private static async Task<IResult> CreateRuleAsync(ProcessingRuleUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateRule(input);
+        if (await db.ProcessingRules.AnyAsync(x => x.Name == input.Name, cancellationToken))
+        {
+            errors[nameof(input.Name)] = ["A rule with this name already exists."];
+        }
+
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -90,13 +95,23 @@ public static class ManagementApiEndpoints
         };
 
         db.ProcessingRules.Add(record);
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Created($"/api/rules/{record.Id}", record);
     }
 
     private static async Task<IResult> UpdateRuleAsync(int id, ProcessingRuleUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateRule(input);
+        if (await db.ProcessingRules.AnyAsync(x => x.Id != id && x.Name == input.Name, cancellationToken))
+        {
+            errors[nameof(input.Name)] = ["A rule with this name already exists."];
+        }
+
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -119,7 +134,12 @@ public static class ManagementApiEndpoints
         existing.StopProcessingOnMatch = input.StopProcessingOnMatch;
         existing.UpdatedUtc = DateTime.UtcNow;
 
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Ok(existing);
     }
 
@@ -166,6 +186,7 @@ public static class ManagementApiEndpoints
     private static async Task<IResult> CreateFolderDestinationAsync(RuleFolderDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateFolderDestination(input);
+        await AppendFolderDestinationForeignKeyErrorsAsync(input, errors, db, cancellationToken);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -189,13 +210,19 @@ public static class ManagementApiEndpoints
         };
 
         db.RuleFolderDestinations.Add(record);
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Created($"/api/folder-destinations/{record.Id}", record);
     }
 
     private static async Task<IResult> UpdateFolderDestinationAsync(int id, RuleFolderDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateFolderDestination(input);
+        await AppendFolderDestinationForeignKeyErrorsAsync(input, errors, db, cancellationToken);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -219,7 +246,12 @@ public static class ManagementApiEndpoints
         existing.IsQueueOnFailure = input.IsQueueOnFailure;
         existing.UpdatedUtc = DateTime.UtcNow;
 
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Ok(existing);
     }
 
@@ -239,6 +271,7 @@ public static class ManagementApiEndpoints
     private static async Task<IResult> CreateForwardDestinationAsync(RuleForwardDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateForwardDestination(input);
+        await AppendForwardDestinationForeignKeyErrorsAsync(input, errors, db, cancellationToken);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -260,13 +293,19 @@ public static class ManagementApiEndpoints
         };
 
         db.RuleForwardDestinations.Add(record);
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Created($"/api/forward-destinations/{record.Id}", record);
     }
 
     private static async Task<IResult> UpdateForwardDestinationAsync(int id, RuleForwardDestinationUpsertRequest input, AppDbContext db, CancellationToken cancellationToken)
     {
         var errors = ValidateForwardDestination(input);
+        await AppendForwardDestinationForeignKeyErrorsAsync(input, errors, db, cancellationToken);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -288,7 +327,12 @@ public static class ManagementApiEndpoints
         existing.RetryPolicyId = input.RetryPolicyId;
         existing.UpdatedUtc = DateTime.UtcNow;
 
-        await db.SaveChangesAsync(cancellationToken);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
         return Results.Ok(existing);
     }
 
@@ -528,6 +572,59 @@ public static class ManagementApiEndpoints
         }
 
         return errors;
+    }
+
+    private static async Task AppendFolderDestinationForeignKeyErrorsAsync(
+        RuleFolderDestinationUpsertRequest input,
+        Dictionary<string, string[]> errors,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (!await db.ProcessingRules.AnyAsync(x => x.Id == input.RuleId, cancellationToken))
+        {
+            errors[nameof(input.RuleId)] = ["RuleId does not exist."];
+        }
+
+        if (input.RetryPolicyId.HasValue
+            && !await db.RetryPolicies.AnyAsync(x => x.Id == input.RetryPolicyId.Value, cancellationToken))
+        {
+            errors[nameof(input.RetryPolicyId)] = ["RetryPolicyId does not exist."];
+        }
+    }
+
+    private static async Task AppendForwardDestinationForeignKeyErrorsAsync(
+        RuleForwardDestinationUpsertRequest input,
+        Dictionary<string, string[]> errors,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (!await db.ProcessingRules.AnyAsync(x => x.Id == input.RuleId, cancellationToken))
+        {
+            errors[nameof(input.RuleId)] = ["RuleId does not exist."];
+        }
+
+        if (input.RetryPolicyId.HasValue
+            && !await db.RetryPolicies.AnyAsync(x => x.Id == input.RetryPolicyId.Value, cancellationToken))
+        {
+            errors[nameof(input.RetryPolicyId)] = ["RetryPolicyId does not exist."];
+        }
+    }
+
+    private static async Task<IResult?> TrySaveChangesAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+        catch (DbUpdateException ex)
+        {
+            var detail = ex.InnerException?.Message ?? ex.Message;
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["database"] = [$"Failed to save configuration. {detail}"]
+            });
+        }
     }
 
     private static Dictionary<string, string[]> ValidatePurgePolicy(PurgePolicyUpdateRequest input)
