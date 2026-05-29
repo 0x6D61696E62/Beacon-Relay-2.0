@@ -41,6 +41,7 @@ coverage/
 # Ignore build artifacts
 dist/
 build/
+artifacts/
 # Ignore node_modules
 node_modules/
 # Ignore logs
