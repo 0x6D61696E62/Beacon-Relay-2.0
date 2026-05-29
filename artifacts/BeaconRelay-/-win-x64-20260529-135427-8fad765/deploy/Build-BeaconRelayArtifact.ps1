@@ -25,26 +25,6 @@ function Ensure-Directory {
     }
 }
 
-function Get-RelativePathCompat {
-    param(
-        [string]$BasePath,
-        [string]$ChildPath
-    )
-
-    $resolvedBase = (Resolve-Path -LiteralPath $BasePath).Path
-    $resolvedChild = (Resolve-Path -LiteralPath $ChildPath).Path
-
-    if (-not $resolvedBase.EndsWith([IO.Path]::DirectorySeparatorChar)) {
-        $resolvedBase = $resolvedBase + [IO.Path]::DirectorySeparatorChar
-    }
-
-    $baseUri = [Uri]$resolvedBase
-    $childUri = [Uri]$resolvedChild
-    $relativeUri = $baseUri.MakeRelativeUri($childUri)
-    $relativePath = [Uri]::UnescapeDataString($relativeUri.ToString())
-    return $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-}
-
 function Get-ShortCommit {
     $git = Get-Command git -ErrorAction SilentlyContinue
     if (-not $git) {
@@ -137,7 +117,7 @@ $hashLines = Get-ChildItem -LiteralPath $artifactDir -File -Recurse |
     Where-Object { $_.FullName -ne $checksumPath } |
     Sort-Object FullName |
     ForEach-Object {
-        $relative = Get-RelativePathCompat -BasePath $artifactDir -ChildPath $_.FullName
+        $relative = [System.IO.Path]::GetRelativePath($artifactDir, $_.FullName)
         $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         "{0} *{1}" -f $hash, $relative.Replace('\\', '/')
     }

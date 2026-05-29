@@ -78,9 +78,9 @@ Two deployment scripts are provided under `deploy/`:
 ### Build artifact on build machine
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 \
-  -Configuration Release \
-  -Runtime win-x64 \
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
   -SelfContained
 ```
 
@@ -92,29 +92,29 @@ This creates an artifact folder under `artifacts/` and, by default, a `.zip` arc
 2. Run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 \
-  -Mode Deploy \
-  -NoPublish \
-  -HostName beaconrelay-test.local \
-  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" \
-  -DatabasePassword "<test-sqlcipher-password>" \
-  -AdminUsername "admin" \
+powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 `
+  -Mode Deploy `
+  -NoPublish `
+  -HostName beaconrelay-test.local `
+  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" `
+  -DatabasePassword "<test-sqlcipher-password>" `
+  -AdminUsername "admin" `
   -AdminPassword "<initial-test-admin-password>"
 ```
 
 ### Deploy to production machine (from artifact)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 \
-  -Mode Upgrade \
-  -NoPublish \
-  -HostName beaconrelay.company.local \
-  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" \
-  -DatabasePassword "<prod-sqlcipher-password>" \
-  -ConvertExistingDatabaseToSqlCipher \
-  -DatabaseBackupPath "D:\Backups\beacon-relay-pre-sqlcipher.db" \
-  -AdminUsername "admin" \
-  -AdminPassword "<initial-prod-admin-password>" \
+powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 `
+  -Mode Upgrade `
+  -NoPublish `
+  -HostName beaconrelay.company.local `
+  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" `
+  -DatabasePassword "<prod-sqlcipher-password>" `
+  -ConvertExistingDatabaseToSqlCipher `
+  -DatabaseBackupPath "D:\Backups\beacon-relay-pre-sqlcipher.db" `
+  -AdminUsername "admin" `
+  -AdminPassword "<initial-prod-admin-password>" `
   -CertificateThumbprint "<tls-cert-thumbprint>"
 ```
 
