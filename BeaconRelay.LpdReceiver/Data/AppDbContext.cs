@@ -15,6 +15,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<PurgePolicyRecord> PurgePolicies => Set<PurgePolicyRecord>();
     public DbSet<RetentionSettingsRecord> RetentionSettings => Set<RetentionSettingsRecord>();
     public DbSet<DeliveryPauseRecord> DeliveryPauseState => Set<DeliveryPauseRecord>();
+    public DbSet<AdminUserRecord> AdminUsers => Set<AdminUserRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         var rule = modelBuilder.Entity<ProcessingRuleRecord>();
         rule.HasKey(x => x.Id);
         rule.Property(x => x.Name).HasMaxLength(256).IsRequired();
+        rule.Property(x => x.HighlightColor).HasMaxLength(16);
         rule.Property(x => x.MatchOperator).HasMaxLength(16).IsRequired();
         rule.Property(x => x.QueueMatchType).HasMaxLength(32).IsRequired();
         rule.Property(x => x.QueueMatchValue).HasMaxLength(256);
@@ -169,5 +171,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         var retentionSettings = modelBuilder.Entity<RetentionSettingsRecord>();
         retentionSettings.HasKey(x => x.Id);
+
+        var adminUser = modelBuilder.Entity<AdminUserRecord>();
+        adminUser.HasKey(x => x.Id);
+        adminUser.Property(x => x.Username).HasMaxLength(128).IsRequired();
+        adminUser.Property(x => x.PasswordHash).HasMaxLength(1024).IsRequired();
+        adminUser.Property(x => x.Role).HasMaxLength(32).IsRequired();
+        adminUser.Property(x => x.IsEnabled).IsRequired();
+        adminUser.HasIndex(x => x.Username).IsUnique();
+        adminUser.HasIndex(x => x.IsEnabled);
     }
 }

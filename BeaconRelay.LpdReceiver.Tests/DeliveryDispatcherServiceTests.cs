@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using BeaconRelay.LpdReceiver.Data;
+using BeaconRelay.LpdReceiver.Options;
 using BeaconRelay.LpdReceiver.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace BeaconRelay.LpdReceiver.Tests;
 
@@ -84,7 +86,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), Microsoft.Extensions.Options.Options.Create(new RetryOptions { DefaultMaxAttempts = 5 }), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -184,7 +186,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), Microsoft.Extensions.Options.Options.Create(new RetryOptions { DefaultMaxAttempts = 5 }), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -284,7 +286,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), Microsoft.Extensions.Options.Options.Create(new RetryOptions { DefaultMaxAttempts = 5 }), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);
@@ -388,7 +390,7 @@ public sealed class DeliveryDispatcherServiceTests
         });
         await db.SaveChangesAsync();
 
-        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), NullLogger<DeliveryDispatcherService>.Instance);
+        var dispatcher = new DeliveryDispatcherService(provider.GetRequiredService<IServiceScopeFactory>(), new DeliveryPauseState(), Microsoft.Extensions.Options.Options.Create(new RetryOptions { DefaultMaxAttempts = 5 }), NullLogger<DeliveryDispatcherService>.Instance);
         var processed = await dispatcher.ProcessOneCycleAsync(CancellationToken.None);
 
         Assert.True(processed);

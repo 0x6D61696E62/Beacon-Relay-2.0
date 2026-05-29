@@ -11,7 +11,8 @@ public sealed record ProcessingRuleUpsertRequest(
     string? QueueMatchValue,
     string? SourceIpCidr,
     int? VirtualPrinterId,
-    bool StopProcessingOnMatch);
+    bool StopProcessingOnMatch,
+    string? HighlightColor);
 
 public sealed record RuleFolderDestinationUpsertRequest(
     int RuleId,

@@ -8,45 +8,45 @@ public static class ManagementApiEndpoints
 {
     public static void MapManagementApi(this WebApplication app)
     {
-        var api = app.MapGroup("/api");
+        var api = app.MapGroup("/api").RequireAuthorization("AnyAuthenticated");
 
         var rules = api.MapGroup("/rules");
         rules.MapGet("/", GetRulesAsync);
         rules.MapGet("/{id:int}", GetRuleByIdAsync);
-        rules.MapPost("/", CreateRuleAsync);
-        rules.MapPost("/reorder", ReorderRulesAsync);
-        rules.MapPut("/{id:int}", UpdateRuleAsync);
-        rules.MapDelete("/{id:int}", DeleteRuleAsync);
+        rules.MapPost("/", CreateRuleAsync).RequireAuthorization("SettingsOrAdmin");
+        rules.MapPost("/reorder", ReorderRulesAsync).RequireAuthorization("SettingsOrAdmin");
+        rules.MapPut("/{id:int}", UpdateRuleAsync).RequireAuthorization("SettingsOrAdmin");
+        rules.MapDelete("/{id:int}", DeleteRuleAsync).RequireAuthorization("SettingsOrAdmin");
 
         var folders = api.MapGroup("/folder-destinations");
-        folders.MapPost("/", CreateFolderDestinationAsync);
-        folders.MapPut("/{id:int}", UpdateFolderDestinationAsync);
-        folders.MapDelete("/{id:int}", DeleteFolderDestinationAsync);
+        folders.MapPost("/", CreateFolderDestinationAsync).RequireAuthorization("SettingsOrAdmin");
+        folders.MapPut("/{id:int}", UpdateFolderDestinationAsync).RequireAuthorization("SettingsOrAdmin");
+        folders.MapDelete("/{id:int}", DeleteFolderDestinationAsync).RequireAuthorization("SettingsOrAdmin");
 
         var forwards = api.MapGroup("/forward-destinations");
-        forwards.MapPost("/", CreateForwardDestinationAsync);
-        forwards.MapPut("/{id:int}", UpdateForwardDestinationAsync);
-        forwards.MapDelete("/{id:int}", DeleteForwardDestinationAsync);
+        forwards.MapPost("/", CreateForwardDestinationAsync).RequireAuthorization("SettingsOrAdmin");
+        forwards.MapPut("/{id:int}", UpdateForwardDestinationAsync).RequireAuthorization("SettingsOrAdmin");
+        forwards.MapDelete("/{id:int}", DeleteForwardDestinationAsync).RequireAuthorization("SettingsOrAdmin");
 
         var delivery = api.MapGroup("/delivery");
         delivery.MapGet("/work-items", GetDeliveryWorkItemsAsync);
         delivery.MapGet("/work-items/{id:guid}", GetDeliveryWorkItemByIdAsync);
-        delivery.MapPost("/work-items/{id:guid}/retry-now", RetryDeliveryWorkItemNowAsync);
-        delivery.MapPost("/work-items/{id:guid}/cancel", CancelDeliveryWorkItemAsync);
+        delivery.MapPost("/work-items/{id:guid}/retry-now", RetryDeliveryWorkItemNowAsync).RequireAuthorization("SettingsOrAdmin");
+        delivery.MapPost("/work-items/{id:guid}/cancel", CancelDeliveryWorkItemAsync).RequireAuthorization("SettingsOrAdmin");
         delivery.MapGet("/status", GetDeliveryStatusAsync);
-        delivery.MapPost("/pause", PauseDeliveryAsync);
-        delivery.MapPost("/resume", ResumeDeliveryAsync);
+        delivery.MapPost("/pause", PauseDeliveryAsync).RequireAuthorization("SettingsOrAdmin");
+        delivery.MapPost("/resume", ResumeDeliveryAsync).RequireAuthorization("SettingsOrAdmin");
 
         var retryPolicies = api.MapGroup("/retry-policies");
         retryPolicies.MapGet("/", GetRetryPoliciesAsync);
 
         var purge = api.MapGroup("/purge-policies");
         purge.MapGet("/", GetPurgePoliciesAsync);
-        purge.MapPut("/{id:int}", UpdatePurgePolicyAsync);
+        purge.MapPut("/{id:int}", UpdatePurgePolicyAsync).RequireAuthorization("SettingsOrAdmin");
 
         var retention = api.MapGroup("/retention-settings");
         retention.MapGet("/", GetRetentionSettingsAsync);
-        retention.MapPut("/", UpdateRetentionSettingsAsync);
+        retention.MapPut("/", UpdateRetentionSettingsAsync).RequireAuthorization("SettingsOrAdmin");
     }
 
     private static async Task<IResult> GetRulesAsync(AppDbContext db, CancellationToken cancellationToken)
@@ -90,6 +90,7 @@ public static class ManagementApiEndpoints
         var record = new ProcessingRuleRecord
         {
             Name = input.Name,
+            HighlightColor = NormalizeHighlightColor(input.HighlightColor),
             Priority = input.Priority,
             IsEnabled = input.IsEnabled,
             MatchOperator = input.MatchOperator,
@@ -132,6 +133,7 @@ public static class ManagementApiEndpoints
         }
 
         existing.Name = input.Name;
+        existing.HighlightColor = NormalizeHighlightColor(input.HighlightColor);
         existing.Priority = input.Priority;
         existing.IsEnabled = input.IsEnabled;
         existing.MatchOperator = input.MatchOperator;
@@ -677,7 +679,56 @@ public static class ManagementApiEndpoints
             errors[nameof(input.QueueMatchType)] = ["QueueMatchType must be Exact, Wildcard, or Regex."];
         }
 
+        if (!string.IsNullOrWhiteSpace(input.HighlightColor) && !IsHexColor(input.HighlightColor))
+        {
+            errors[nameof(input.HighlightColor)] = ["HighlightColor must be a valid hex color like #3A7BD5."];
+        }
+
         return errors;
+    }
+
+    private static string? NormalizeHighlightColor(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith('#'))
+        {
+            trimmed = "#" + trimmed;
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
+
+    private static bool IsHexColor(string value)
+    {
+        var text = value.Trim();
+        if (text.Length == 6)
+        {
+            text = "#" + text;
+        }
+
+        if (text.Length != 7 || text[0] != '#')
+        {
+            return false;
+        }
+
+        for (var i = 1; i < text.Length; i++)
+        {
+            var c = text[i];
+            var isHexDigit = (c >= '0' && c <= '9')
+                || (c >= 'a' && c <= 'f')
+                || (c >= 'A' && c <= 'F');
+            if (!isHexDigit)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static Dictionary<string, string[]> ValidateFolderDestination(RuleFolderDestinationUpsertRequest input)

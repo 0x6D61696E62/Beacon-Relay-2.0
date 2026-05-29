@@ -6,6 +6,11 @@
   <title>Beacon Relay Admin</title>
   <link rel="stylesheet" href="/admin/theme.css">
   <style>
+    :root {
+      --menu-width: 286px;
+      --header-offset: 96px;
+    }
+
     * { box-sizing: border-box; }
 
     body {
@@ -17,6 +22,7 @@
         radial-gradient(90% 110% at 110% -10%, #caefe8 0%, transparent 48%),
         linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     header {
@@ -29,6 +35,40 @@
       justify-content: space-between;
       gap: 14px;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      width: 100%;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .menu-toggle {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f8fd;
+      border-color: #cfdced;
+      flex-shrink: 0;
+    }
+
+    .menu-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .menu-toggle.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
 
     h1, h2, h3 { margin: 0; }
@@ -45,38 +85,63 @@
     }
 
     main {
-      max-width: 1440px;
-      margin: 0 auto;
+      margin: 0;
       padding: 18px;
+      transition: margin-left 220ms ease;
     }
 
     .layout {
-      display: grid;
-      gap: 20px;
-      grid-template-columns: 1fr;
+      display: block;
     }
 
-    @media (min-width: 980px) {
-      .layout { grid-template-columns: minmax(220px, 270px) 1fr; }
+    body.read-only .side-nav,
+    body.read-only .menu-toggle,
+    body.read-only .menu-overlay {
+      display: none;
+    }
+
+    body.read-only main {
+      margin-left: 0;
+    }
+
+    body.read-only .content-area {
+      max-width: none;
+    }
+
+    body.menu-expanded main {
+      margin-left: var(--menu-width);
+    }
+
+    body.menu-collapsed main {
+      margin-left: 0;
     }
 
     .side-nav {
       background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
+      border-right: 1px solid var(--line);
       box-shadow: var(--shadow-sm);
-      padding: 14px;
-      height: fit-content;
-      position: sticky;
-      top: 18px;
+      padding: 20px 14px;
+      position: fixed;
+      top: var(--header-offset);
+      left: 0;
+      bottom: 0;
+      width: var(--menu-width);
+      z-index: 30;
       overflow: hidden;
+      transition: transform 220ms ease;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 251, 255, 0.95) 100%);
+      height: calc(100vh - var(--header-offset));
+    }
+
+    body.menu-collapsed .side-nav {
+      transform: translateX(calc(-1 * var(--menu-width) - 8px));
     }
 
     .side-nav::before {
       content: "";
       display: block;
       height: 4px;
-      margin: -14px -14px 12px;
+      margin: -20px -14px 12px;
       background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
     }
 
@@ -100,6 +165,9 @@
     }
 
     .nav-links button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
       text-align: left;
       width: 100%;
       font-weight: 600;
@@ -123,9 +191,72 @@
       box-shadow: 0 8px 18px rgba(15, 92, 192, 0.35);
     }
 
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.88;
+    }
+
+    .nav-links button.active .nav-icon {
+      opacity: 1;
+    }
+
+    .nav-label {
+      display: inline-block;
+    }
+
     .content-area {
       display: grid;
       gap: 18px;
+      max-width: 1420px;
+    }
+
+    .view-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #cfe0f5;
+      background: #edf4ff;
+      color: #355985;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .view-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.75;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: var(--header-offset);
+      background: rgba(12, 24, 42, 0.36);
+      backdrop-filter: blur(1px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 20;
+    }
+
+    @media (max-width: 980px) {
+      body.menu-expanded .menu-overlay {
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
 
     .view-section {
@@ -284,6 +415,30 @@
 
     tr:hover td { background: #f8fbff; }
 
+    .queue-row {
+      cursor: pointer;
+    }
+
+    .queue-row.selected td {
+      background: #e7f0ff;
+    }
+
+    .rule-color-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rule-color-chip {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+
     .pill {
       display: inline-block;
       border-radius: 999px;
@@ -353,6 +508,21 @@
       .toolbar button { width: 100%; }
     }
 
+    @media (max-width: 980px) {
+      body.menu-expanded header,
+      body.menu-expanded main {
+        margin-left: 0;
+      }
+
+      .side-nav {
+        width: min(86vw, 320px);
+      }
+
+      body.menu-collapsed .side-nav {
+        transform: translateX(-110%);
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; }
     }
@@ -362,6 +532,19 @@
       display: grid;
       gap: 14px;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .status-grid .card.card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table-wrap table {
+      min-width: 680px;
     }
 
     .stat-strip {
@@ -439,9 +622,19 @@
 </head>
 <body>
   <header>
-    <div>
-      <h1>Beacon Relay Admin</h1>
-      <div class="muted">Operational control center for routing rules, destination policy, and delivery execution.</div>
+    <div class="header-left">
+      <button id="menuToggle" class="menu-toggle" aria-label="Toggle settings menu" title="Toggle settings menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 6h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 18h16"></path>
+        </svg>
+      </button>
+      <div>
+        <h1>Beacon Relay Admin</h1>
+        <div class="muted">Operational control center for routing rules, destination policy, and delivery execution.</div>
+        <div id="activeViewChip" class="view-chip">System Status</div>
+      </div>
     </div>
     <div class="meta">
       <div id="authStatus" class="muted"></div>
@@ -450,22 +643,41 @@
   </header>
 
   <main>
+    <div id="menuOverlay" class="menu-overlay"></div>
     <div class="layout">
       <aside class="side-nav">
         <h2>Settings Menu</h2>
         <div class="hint">Select a module to configure and save.</div>
         <div class="nav-links">
-          <button class="active" data-view-target="status">System Status</button>
-          <button data-view-target="retention">Retention & Purge</button>
-          <button data-view-target="rules">Rules and Matching</button>
-          <button data-view-target="folder">Folder Routing</button>
-          <button data-view-target="lpd">LPD Forwarding</button>
-          <button data-view-target="delivery">Delivery Queue</button>
+          <button class="active" data-view-target="status">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h6"></path><path d="M4 19h10"></path><path d="M14 5h6"></path><path d="M14 11h6"></path><path d="M11 17h2"></path><rect x="4" y="4" width="6" height="7" rx="1"></rect><rect x="14" y="13" width="6" height="7" rx="1"></rect></svg>
+            <span class="nav-label">System Status</span>
+          </button>
+          <button data-view-target="retention">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 14h10l1-14"></path><path d="M10 10v7"></path><path d="M14 10v7"></path></svg>
+            <span class="nav-label">Retention &amp; Purge</span>
+          </button>
+          <button data-view-target="rules">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14"></path><path d="M5 12h10"></path><path d="M5 18h14"></path><circle cx="18" cy="12" r="1"></circle></svg>
+            <span class="nav-label">Rules and Matching</span>
+          </button>
+          <button data-view-target="folder">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h6l2 2h10v9H3z"></path><path d="M3 8V5h7l2 2"></path></svg>
+            <span class="nav-label">Folder Routing</span>
+          </button>
+          <button data-view-target="lpd">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"></path><path d="M13 7l5 5-5 5"></path></svg>
+            <span class="nav-label">LPD Forwarding</span>
+          </button>
+          <button data-view-target="delivery">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h3l4 4v3h-7z"></path><circle cx="8" cy="19" r="1"></circle><circle cx="18" cy="19" r="1"></circle></svg>
+            <span class="nav-label">Delivery Queue</span>
+          </button>
         </div>
       </aside>
 
       <div class="content-area">
-        <section class="view-section" data-view="rules">
+        <section class="view-section" data-view="rules" data-access="settings">
           <section class="card">
             <h2>Rules</h2>
             <div class="body">
@@ -501,6 +713,14 @@
                   </select>
                 </label>
               </div>
+              <div class="row">
+                <label>Rule Highlight Color
+                  <div class="rule-color-row">
+                    <input id="ruleColor" type="color" value="#0F5CC0" style="width:74px; padding:4px 6px;">
+                    <span class="muted">Used to highlight this rule in rule and queue entries.</span>
+                  </div>
+                </label>
+              </div>
               <div class="toolbar">
                 <button class="primary" id="saveRule">Save Rule</button>
                 <button id="resetRule">Reset Form</button>
@@ -519,7 +739,7 @@
           </section>
         </section>
 
-        <section class="view-section" data-view="folder">
+        <section class="view-section" data-view="folder" data-access="settings">
           <section class="card">
             <h2>Folder Destinations</h2>
             <div class="body">
@@ -601,7 +821,7 @@
           </section>
         </section>
 
-        <section class="view-section" data-view="lpd">
+        <section class="view-section" data-view="lpd" data-access="settings">
           <section class="card">
             <h2>LPD Forward Destinations</h2>
             <div class="body">
@@ -727,7 +947,7 @@
           </section>
         </section>
 
-        <section class="view-section" data-view="retention">
+        <section class="view-section" data-view="retention" data-access="settings">
           <section class="card">
             <h2>Retention Cleanup Settings</h2>
             <div class="body">
@@ -863,18 +1083,20 @@
               </div>
             </section>
 
-            <section class="card">
+            <section class="card card-wide">
               <h2>Top Rules By Destinations</h2>
               <div class="body">
                 <div class="hint">Top 10 rules with the highest total configured destinations and delivered reports.</div>
-                <table>
-                  <thead>
-                    <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th><th>Delivered Reports</th></tr>
-                  </thead>
-                  <tbody id="statusTopRulesBody">
-                    <tr><td colspan="5" class="muted">No data yet.</td></tr>
-                  </tbody>
-                </table>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th><th>Delivered Reports</th></tr>
+                    </thead>
+                    <tbody id="statusTopRulesBody">
+                      <tr><td colspan="5" class="muted">No data yet.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
@@ -913,8 +1135,60 @@
       editingPurgePolicyId: null,
       queuePage: 1,
       queueTotalPages: 1,
-      queueSelectedId: null
+      queueSelectedId: null,
+      isMenuCollapsed: false,
+      currentRole: 'ReadOnly',
+      canManageSettings: false
     };
+
+    const viewLabels = {
+      status: 'System Status',
+      retention: 'Retention & Purge',
+      rules: 'Rules and Matching',
+      folder: 'Folder Routing',
+      lpd: 'LPD Forwarding',
+      delivery: 'Delivery Queue'
+    };
+
+    function applyMenuState() {
+      const body = document.body;
+      body.classList.toggle('menu-collapsed', state.isMenuCollapsed);
+      body.classList.toggle('menu-expanded', !state.isMenuCollapsed);
+      const toggle = el('menuToggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', state.isMenuCollapsed ? 'false' : 'true');
+        toggle.classList.toggle('active', !state.isMenuCollapsed);
+      }
+    }
+
+    function applyAccessControls() {
+      const canManageSettings = state.currentRole === 'Admin' || state.currentRole === 'Settings';
+      state.canManageSettings = canManageSettings;
+      document.body.classList.toggle('read-only', !canManageSettings);
+
+      document.querySelectorAll('[data-access="settings"]').forEach(section => {
+        section.hidden = !canManageSettings;
+      });
+
+      const settingsButtons = [el('saveRetention'), el('refreshRetention'), el('savePurgePolicy'), el('resetPurgePolicy'), el('saveRule'), el('resetRule'), el('refreshRules'), el('saveRuleOrder'), el('saveFolder'), el('resetFolder'), el('saveForward'), el('resetForward')];
+      settingsButtons.forEach(button => {
+        if (!button) return;
+        button.disabled = !canManageSettings;
+      });
+
+      [el('pauseBtn'), el('resumeBtn')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageSettings;
+        button.disabled = !canManageSettings;
+      });
+    }
+
+    function syncLayoutOffsets() {
+      const header = document.querySelector('header');
+      if (!header) return;
+      const headerHeight = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--header-offset', headerHeight + 'px');
+    }
 
     async function fetchJson(url, options) {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
@@ -979,6 +1253,22 @@
       return policy ? policy.name : ('Policy #' + policyId);
     }
 
+    function normalizeHexColor(value) {
+      if (!value) {
+        return '#0F5CC0';
+      }
+
+      const text = String(value).trim();
+      const prefixed = text.startsWith('#') ? text : ('#' + text);
+      const valid = /^#[0-9a-fA-F]{6}$/.test(prefixed);
+      return valid ? prefixed.toUpperCase() : '#0F5CC0';
+    }
+
+    function ruleHighlightColor(ruleId) {
+      const rule = state.rules.find(x => x.id === ruleId);
+      return normalizeHexColor(rule && rule.highlightColor);
+    }
+
     function formatLocalTime(value) {
       if (!value) {
         return '-';
@@ -1031,9 +1321,10 @@
       el('rulesBody').innerHTML = state.rules.map((rule, index) => {
         const folderCount = (rule.folderDestinations || []).length;
         const forwardCount = (rule.forwardDestinations || []).length;
+        const highlightColor = normalizeHexColor(rule.highlightColor);
         return '<tr>' +
-          '<td>' + rule.priority + '</td>' +
-          '<td>' + rule.name + '</td>' +
+          '<td style="border-left:4px solid ' + highlightColor + ';">' + rule.priority + '</td>' +
+          '<td><span class="rule-color-chip" style="background:' + highlightColor + ';"></span>' + rule.name + '</td>' +
           '<td>' + rule.queueMatchType + ': ' + (rule.queueMatchValue || '(none)') + '</td>' +
           '<td>' + folderCount + ' folder / ' + forwardCount + ' forward</td>' +
           '<td>' + statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
@@ -1079,14 +1370,14 @@
 
     function renderQueue() {
       el('queueBody').innerHTML = state.workItems.map(item =>
-        '<tr>' +
+        '<tr class="queue-row' + (state.queueSelectedId === item.id ? ' selected' : '') + '" onclick="selectQueueItem(\'' + item.id + '\')" style="border-left:4px solid ' + ruleHighlightColor(item.ruleId) + ';">' +
           '<td>' + statusPill(item.status) + '</td>' +
           '<td>' + destinationSummary(item) + '</td>' +
           '<td>' + item.attemptCount + '</td>' +
           '<td>' + formatLocalTime(item.nextAttemptUtc) + '</td>' +
           '<td class="actions">' +
-            '<button onclick="showDetails(\'' + item.id + '\')">Details</button>' +
-            '<button onclick="retryItem(\'' + item.id + '\')">Retry</button>' +
+            '<button onclick="showDetails(\'' + item.id + '\'); return false;">Details</button>' +
+            (state.canManageSettings ? '<button onclick="retryItem(\'' + item.id + '\'); return false;">Retry</button>' : '') +
           '</td>' +
         '</tr>'
       ).join('');
@@ -1103,7 +1394,11 @@
     async function loadAuthStatus() {
       try {
         const status = await fetchJson('/auth/status');
-        el('authStatus').textContent = status.enabled ? ('Signed in as ' + (status.username || 'admin')) : 'Auth disabled';
+        state.currentRole = status.role || 'ReadOnly';
+        el('authStatus').textContent = status.authenticated
+          ? ('Signed in as ' + (status.username || 'admin') + ' (' + state.currentRole + ')')
+          : 'Signed out';
+        applyAccessControls();
       } catch (_) {
         el('authStatus').textContent = '';
       }
@@ -1253,6 +1548,7 @@
       el('queueValue').value = 'main';
       el('matchOperator').value = 'And';
       el('ruleEnabled').value = 'true';
+      el('ruleColor').value = '#0F5CC0';
     }
 
     function resetFolderForm() {
@@ -1294,7 +1590,8 @@
           queueMatchValue: el('queueValue').value || null,
           sourceIpCidr: null,
           virtualPrinterId: null,
-          stopProcessingOnMatch: false
+          stopProcessingOnMatch: false,
+          highlightColor: normalizeHexColor(el('ruleColor').value)
         };
 
         if (state.editingRuleId) {
@@ -1408,6 +1705,10 @@
         state.queuePage = result.page || 1;
         state.queueTotalPages = result.totalPages || 1;
         renderQueue();
+
+        if (state.queueSelectedId && state.workItems.some(x => x.id === state.queueSelectedId)) {
+          await showDetails(state.queueSelectedId);
+        }
       } catch (err) {
         el('queueError').textContent = 'Failed loading queue: ' + err.message;
       }
@@ -1438,6 +1739,12 @@
       } catch (err) {
         el('queueError').textContent = 'Failed loading details: ' + err.message;
       }
+    }
+
+    function selectQueueItem(id) {
+      state.queueSelectedId = id;
+      renderQueue();
+      showDetails(id);
     }
 
     async function retryItem(id) {
@@ -1489,6 +1796,7 @@
       el('queueValue').value = rule.queueMatchValue || '';
       el('matchOperator').value = rule.matchOperator;
       el('ruleEnabled').value = rule.isEnabled ? 'true' : 'false';
+      el('ruleColor').value = normalizeHexColor(rule.highlightColor);
     }
 
     function editFolder(id) {
@@ -1642,6 +1950,7 @@
     window.deleteFolder = deleteFolder;
     window.deleteForward = deleteForward;
     window.showDetails = showDetails;
+    window.selectQueueItem = selectQueueItem;
     window.retryItem = retryItem;
     window.editPurgePolicy = editPurgePolicy;
 
@@ -1652,18 +1961,63 @@
       document.querySelectorAll('[data-view-target]').forEach(button => {
         button.classList.toggle('active', button.getAttribute('data-view-target') === viewName);
       });
+      el('activeViewChip').textContent = viewLabels[viewName] || 'Settings';
     }
 
     document.querySelectorAll('[data-view-target]').forEach(button => {
       button.addEventListener('click', () => {
         const target = button.getAttribute('data-view-target') || 'rules';
         setActiveView(target);
+        if (window.innerWidth < 980) {
+          state.isMenuCollapsed = true;
+          applyMenuState();
+        }
         if (target === 'status') { loadStatus(); }
         if (target === 'retention') {
           loadRetentionSettings();
           loadPurgePolicies();
         }
       });
+    });
+
+    el('menuToggle').addEventListener('click', () => {
+      state.isMenuCollapsed = !state.isMenuCollapsed;
+      applyMenuState();
+    });
+
+    el('menuOverlay').addEventListener('click', () => {
+      if (window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const key = (event.key || '').toLowerCase();
+      const usesToggleShortcut = (event.ctrlKey || event.metaKey) && key === 'b';
+
+      if (usesToggleShortcut) {
+        event.preventDefault();
+        state.isMenuCollapsed = !state.isMenuCollapsed;
+        applyMenuState();
+        return;
+      }
+
+      if (key === 'escape' && window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      syncLayoutOffsets();
+      if (window.innerWidth >= 980 && state.isMenuCollapsed) {
+        state.isMenuCollapsed = false;
+        applyMenuState();
+      } else if (window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
     });
 
     el('saveRule').addEventListener('click', saveRule);
@@ -1708,7 +2062,12 @@
     el('refreshStatus').addEventListener('click', loadStatus);
 
     (async function init() {
+      syncLayoutOffsets();
+      state.isMenuCollapsed = window.innerWidth < 980;
+      applyMenuState();
       setActiveView('status');
+      applyAccessControls();
+      await loadAuthStatus();
       resetRuleForm();
       await loadRetryPolicies();
       resetFolderForm();
@@ -1718,7 +2077,6 @@
       await loadStatus();
       await loadRetentionSettings();
       await loadPurgePolicies();
-      await loadAuthStatus();
     })();
   </script>
 </body>

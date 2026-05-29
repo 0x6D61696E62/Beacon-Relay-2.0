@@ -1,16 +1,12 @@
-using BeaconRelay.LpdReceiver.Options;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Options;
 
 namespace BeaconRelay.LpdReceiver.Services;
 
-public sealed class AdminSessionGateMiddleware(RequestDelegate next, IOptions<AdminAuthOptions> options)
+public sealed class AdminSessionGateMiddleware(RequestDelegate next)
 {
-    private readonly AdminAuthOptions _options = options.Value;
-
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!_options.Enabled || !RequiresProtection(context.Request.Path))
+        if (!RequiresProtection(context.Request.Path))
         {
             await next(context);
             return;

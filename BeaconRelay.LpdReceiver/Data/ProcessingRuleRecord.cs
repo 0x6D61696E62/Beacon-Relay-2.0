@@ -4,6 +4,7 @@ public sealed class ProcessingRuleRecord
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? HighlightColor { get; set; }
     public int Priority { get; set; }
     public bool IsEnabled { get; set; } = true;
     public string MatchOperator { get; set; } = RuleMatchOperator.And;

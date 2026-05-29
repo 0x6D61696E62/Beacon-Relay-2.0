@@ -1,7 +1,10 @@
 using System.Security.Claims;
+using BeaconRelay.LpdReceiver.Data;
 using BeaconRelay.LpdReceiver.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BeaconRelay.LpdReceiver.Api;
@@ -14,22 +17,24 @@ public static class AdminAuthEndpoints
         app.MapPost("/auth/logout", (Delegate)LogoutAsync);
         app.MapGet("/auth/status", GetStatusHandler);
 
-        static IResult GetStatusHandler(HttpContext context, IOptions<AdminAuthOptions> options)
+        static IResult GetStatusHandler(HttpContext context)
         {
-            return GetStatus(context, options);
+            return GetStatus(context);
         }
     }
 
-    private static async Task<IResult> LoginAsync(AdminLoginRequest request, HttpContext context, IOptions<AdminAuthOptions> options)
+    private static async Task<IResult> LoginAsync(AdminLoginRequest request, HttpContext context, AppDbContext db, IOptions<AdminAuthOptions> options, CancellationToken cancellationToken)
     {
         var auth = options.Value;
-        if (!auth.Enabled)
+        var user = await db.AdminUsers.FirstOrDefaultAsync(x => x.Username == request.Username && x.IsEnabled, cancellationToken);
+        if (user is null)
         {
-            return Results.Ok(new { authenticated = true, disabled = true });
+            return Results.Unauthorized();
         }
 
-        if (!string.Equals(request.Username, auth.Username, StringComparison.Ordinal)
-            || !string.Equals(request.Password, auth.Password, StringComparison.Ordinal))
+        var hasher = new PasswordHasher<AdminUserRecord>();
+        var verification = hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        if (verification == PasswordVerificationResult.Failed)
         {
             return Results.Unauthorized();
         }
@@ -37,7 +42,8 @@ public static class AdminAuthEndpoints
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, request.Username),
-            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Role, user.Role),
         };
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
@@ -50,7 +56,7 @@ public static class AdminAuthEndpoints
                 ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(Math.Max(5, auth.SessionMinutes)),
             });
 
-        return Results.Ok(new { authenticated = true, username = request.Username });
+        return Results.Ok(new { authenticated = true, username = request.Username, role = user.Role });
     }
 
     private static async Task<IResult> LogoutAsync(HttpContext context)
@@ -59,19 +65,18 @@ public static class AdminAuthEndpoints
         return Results.Ok(new { authenticated = false });
     }
 
-    private static IResult GetStatus(HttpContext context, IOptions<AdminAuthOptions> options)
+    private static IResult GetStatus(HttpContext context)
     {
-        var auth = options.Value;
-        if (!auth.Enabled)
+        if (context.User.Identity?.IsAuthenticated != true)
         {
-            return Results.Ok(new { enabled = false, authenticated = true });
+            return Results.Ok(new { authenticated = false });
         }
 
         return Results.Ok(new
         {
-            enabled = true,
-            authenticated = context.User.Identity?.IsAuthenticated == true,
+            authenticated = true,
             username = context.User.Identity?.Name,
+            role = context.User.FindFirstValue(ClaimTypes.Role) ?? AdminRoles.ReadOnly,
         });
     }
 }

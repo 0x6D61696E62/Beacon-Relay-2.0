@@ -1,11 +1,14 @@
 using BeaconRelay.LpdReceiver.Data;
+using BeaconRelay.LpdReceiver.Options;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BeaconRelay.LpdReceiver.Services;
 
 public sealed class DeliveryDispatcherService(
     IServiceScopeFactory scopeFactory,
     DeliveryPauseState pauseState,
+    IOptions<RetryOptions> retryOptions,
     ILogger<DeliveryDispatcherService> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
@@ -113,7 +116,7 @@ public sealed class DeliveryDispatcherService(
         return true;
     }
 
-    private static async Task PersistAttemptOutcomeAsync(AppDbContext db, DeliveryWorkItemRecord workItem, DeliveryExecutionResult result, RetryPolicyRecord? retryPolicy, CancellationToken cancellationToken)
+    private async Task PersistAttemptOutcomeAsync(AppDbContext db, DeliveryWorkItemRecord workItem, DeliveryExecutionResult result, RetryPolicyRecord? retryPolicy, CancellationToken cancellationToken)
     {
         var nowUtc = DateTime.UtcNow;
         workItem.AttemptCount += 1;
@@ -150,7 +153,8 @@ public sealed class DeliveryDispatcherService(
             return;
         }
 
-        var canRetry = result.ShouldRetry && (retryPolicy?.MaxAttempts is null || workItem.AttemptCount < retryPolicy.MaxAttempts.Value);
+        var maxAttempts = retryPolicy?.MaxAttempts ?? retryOptions.Value.DefaultMaxAttempts;
+        var canRetry = result.ShouldRetry && (!maxAttempts.HasValue || workItem.AttemptCount < maxAttempts.Value);
         if (canRetry)
         {
             var delay = CalculateRetryDelay(retryPolicy, workItem.AttemptCount);
