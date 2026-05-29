@@ -762,6 +762,13 @@ Ensure-Directory -Path $proxyRoot
 if ($NoPublish -and -not [string]::IsNullOrWhiteSpace($ArtifactSourcePath)) {
     Write-Step 'Syncing artifact content to application root'
     Sync-ArtifactToAppRoot -SourceRoot $ArtifactSourcePath -DestinationRoot $AppRoot
+
+    # robocopy /MIR can remove destination-only folders; ensure required runtime paths exist.
+    Ensure-Directory -Path $publishPath
+    Ensure-Directory -Path $dbDir
+    Ensure-Directory -Path $InboxPath
+    Ensure-Directory -Path $RoutedPath
+    Ensure-Directory -Path $proxyRoot
 }
 
 if (-not $NoPublish) {
