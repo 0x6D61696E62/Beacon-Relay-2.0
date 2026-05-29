@@ -664,6 +664,12 @@ if ($Mode -eq 'Remove') {
     }
 
     if ($PurgeAppRoot -and (Test-Path -LiteralPath $AppRoot)) {
+        $resolvedAppRoot = [System.IO.Path]::GetFullPath($AppRoot).TrimEnd('\\')
+        $resolvedCurrent = [System.IO.Path]::GetFullPath((Get-Location).Path).TrimEnd('\\')
+        if ($resolvedCurrent.StartsWith($resolvedAppRoot, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Cannot use -PurgeAppRoot while current directory is inside AppRoot ($resolvedCurrent). Run the remove command from outside $resolvedAppRoot or omit -PurgeAppRoot."
+        }
+
         if ($PSCmdlet.ShouldProcess($AppRoot, 'Delete application root directory')) {
             Remove-Item -LiteralPath $AppRoot -Recurse -Force
         }

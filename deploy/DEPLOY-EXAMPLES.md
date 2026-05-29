@@ -129,6 +129,11 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-BeaconRelay.ps1 `
   -PurgeAppRoot
 ```
 
+Important:
+
+- Do not run `-PurgeAppRoot` from inside `AppRoot` (for example, from `AppRoot\deploy`).
+- Run the remove command from a different directory, or run without `-PurgeAppRoot` and delete `AppRoot` afterward.
+
 ## 8) Useful Optional Switches
 
 - `-SkipIis` for service-only installs.
