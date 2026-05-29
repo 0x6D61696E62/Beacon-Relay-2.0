@@ -59,6 +59,23 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-BeaconRelay.ps1 `
   -AdminPassword "<bootstrap-admin-password>"
 ```
 
+Alternative: run deploy from any folder and let script copy artifact to `AppRoot` automatically:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 `
+  -Mode Deploy `
+  -NoPublish `
+  -ArtifactSourcePath "C:\Users\bmain\Downloads\BeaconRelay-Release-win-x64-<build-id>" `
+  -AppRoot "C:\Program Files\Interbit\Beacon Relay" `
+  -ServiceName "Interbit Beacon Relay" `
+  -SiteName "BeaconRelay Admin" `
+  -HostName beaconrelay.company.local `
+  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" `
+  -DatabasePassword '<sqlcipher-password>' `
+  -AdminUsername "admin" `
+  -AdminPassword "<bootstrap-admin-password>"
+```
+
 ## 4) Upgrade Existing Install (No DB Conversion)
 
 Use when service already exists and database is already in desired format.
@@ -74,6 +91,8 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-BeaconRelay.ps1 `
   -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" `
   -DatabasePassword '<sqlcipher-password>'
 ```
+
+You can also include `-ArtifactSourcePath` during upgrade with `-NoPublish` to sync updated artifact files into `AppRoot` before service update.
 
 ## 5) Upgrade + Convert Existing Plaintext SQLite To SQLCipher
 
@@ -140,6 +159,7 @@ Important:
 - `-SkipFirewall` if firewall is managed separately.
 - `-AutoInstallIisProxyModules` to install ARR/URL Rewrite automatically.
 - `-CreateSelfSignedCert` optional manual trigger (script now auto-creates by default when needed).
+- `-ArtifactSourcePath` to robocopy artifact contents into `AppRoot` automatically when using `-NoPublish`.
 
 ## 9) Operations Template (Fill-In Once)
 

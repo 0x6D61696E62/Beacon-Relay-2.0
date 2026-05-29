@@ -11,6 +11,7 @@ param(
     [string]$AppRoot = 'C:\Program Files\Interbit\Beacon Relay',
     [string]$Runtime = 'win-x64',
     [string]$Configuration = 'Release',
+    [string]$ArtifactSourcePath = '',
     [string]$AdminUsername = 'admin',
     [string]$AdminPassword = 'change-me-now',
     [string]$DatabasePassword = '',
@@ -59,6 +60,61 @@ function Ensure-Directory {
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($PSCmdlet.ShouldProcess($Path, 'Create directory')) {
             New-Item -Path $Path -ItemType Directory -Force | Out-Null
+        }
+    }
+}
+
+function Sync-ArtifactToAppRoot {
+    param(
+        [string]$SourceRoot,
+        [string]$DestinationRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $SourceRoot)) {
+        throw "ArtifactSourcePath not found: $SourceRoot"
+    }
+
+    $robocopy = Get-Command robocopy -ErrorAction SilentlyContinue
+    if (-not $robocopy) {
+        throw 'robocopy was not found on this machine. Install/correct PATH or copy artifact files manually.'
+    }
+
+    $resolvedSource = [System.IO.Path]::GetFullPath($SourceRoot).TrimEnd('\\')
+    $resolvedDestination = [System.IO.Path]::GetFullPath($DestinationRoot).TrimEnd('\\')
+
+    if ($resolvedSource.Equals($resolvedDestination, [StringComparison]::OrdinalIgnoreCase)) {
+        Write-Host '  ArtifactSourcePath and AppRoot are the same path. Skipping robocopy sync.' -ForegroundColor DarkGray
+        return
+    }
+
+    if ($resolvedDestination.StartsWith($resolvedSource + '\\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'AppRoot cannot be a child of ArtifactSourcePath when using robocopy sync. Choose a different AppRoot.'
+    }
+
+    Ensure-Directory -Path $resolvedDestination
+
+    $robocopyArgs = @(
+        $resolvedSource,
+        $resolvedDestination,
+        '/MIR',
+        '/R:2',
+        '/W:1',
+        '/NFL',
+        '/NDL',
+        '/NJH',
+        '/NJS',
+        '/NP'
+    )
+
+    if ($PSCmdlet.ShouldProcess($resolvedDestination, "Sync artifact from $resolvedSource using robocopy")) {
+        & $robocopy.Source @robocopyArgs | Out-Null
+        $robocopyExit = $LASTEXITCODE
+        if ($robocopyExit -gt 7) {
+            throw "robocopy failed with exit code $robocopyExit while syncing artifact to AppRoot."
         }
     }
 }
@@ -703,6 +759,11 @@ Ensure-Directory -Path $InboxPath
 Ensure-Directory -Path $RoutedPath
 Ensure-Directory -Path $proxyRoot
 
+if ($NoPublish -and -not [string]::IsNullOrWhiteSpace($ArtifactSourcePath)) {
+    Write-Step 'Syncing artifact content to application root'
+    Sync-ArtifactToAppRoot -SourceRoot $ArtifactSourcePath -DestinationRoot $AppRoot
+}
+
 if (-not $NoPublish) {
     Write-Step 'Publishing application'
     $publishArgs = @(
@@ -725,6 +786,10 @@ if (-not $NoPublish) {
 Write-Step 'Applying production appsettings'
 $appSettingsPath = Join-Path $publishPath 'appsettings.json'
 if (-not (Test-Path -LiteralPath $appSettingsPath)) {
+    if ($NoPublish -and [string]::IsNullOrWhiteSpace($ArtifactSourcePath)) {
+        throw "Could not find $appSettingsPath. For -NoPublish deployments, either pre-copy artifact contents into AppRoot or pass -ArtifactSourcePath to have the script robocopy them for you."
+    }
+
     throw "Could not find $appSettingsPath"
 }
 
