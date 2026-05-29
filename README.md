@@ -68,6 +68,63 @@ dotnet test BeaconRelay.slnx
 dotnet run --project BeaconRelay.LpdReceiver/BeaconRelay.LpdReceiver.csproj
 ```
 
+## Deployment Workflow
+
+Two deployment scripts are provided under `deploy/`:
+
+- `Deploy-BeaconRelay.ps1`: installs/upgrades/removes the service and IIS proxy on the target machine.
+- `Build-BeaconRelayArtifact.ps1`: builds a portable artifact (`publish/`, deploy scripts, checksums, optional zip) for target machines.
+
+### Build artifact on build machine
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 \
+  -Configuration Release \
+  -Runtime win-x64 \
+  -SelfContained
+```
+
+This creates an artifact folder under `artifacts/` and, by default, a `.zip` archive.
+
+### Deploy to test machine (from artifact)
+
+1. Copy the artifact contents to the target (ensure `publish/` and `deploy/` are present).
+2. Run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 \
+  -Mode Deploy \
+  -NoPublish \
+  -HostName beaconrelay-test.local \
+  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" \
+  -DatabasePassword "<test-sqlcipher-password>" \
+  -AdminUsername "admin" \
+  -AdminPassword "<initial-test-admin-password>"
+```
+
+### Deploy to production machine (from artifact)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Deploy-BeaconRelay.ps1 \
+  -Mode Upgrade \
+  -NoPublish \
+  -HostName beaconrelay.company.local \
+  -DatabasePath "C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db" \
+  -DatabasePassword "<prod-sqlcipher-password>" \
+  -ConvertExistingDatabaseToSqlCipher \
+  -DatabaseBackupPath "D:\Backups\beacon-relay-pre-sqlcipher.db" \
+  -AdminUsername "admin" \
+  -AdminPassword "<initial-prod-admin-password>" \
+  -CertificateThumbprint "<tls-cert-thumbprint>"
+```
+
+Notes:
+
+- `-NoPublish` is intended for artifact-based deploys where binaries are already present in `publish/`.
+- `-ConvertExistingDatabaseToSqlCipher` is required to convert an existing plaintext SQLite database.
+- Use either `-DatabaseBackupPath` or `-SkipDatabaseConversionBackup` when converting, not both.
+- `AdminAuth` values are bootstrap credentials for first-run admin seeding.
+
 ## Database migration/init
 
 Migrations are included under:
