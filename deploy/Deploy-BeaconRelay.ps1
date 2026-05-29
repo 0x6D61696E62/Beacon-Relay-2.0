@@ -1,24 +1,29 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [string]$ServiceName = 'BeaconRelay',
+    [ValidateSet('Deploy', 'Upgrade', 'Remove', 'Status')]
+    [string]$Mode = 'Deploy',
+    [string]$ServiceName = 'Interbit Beacon Relay',
+    [string]$ServiceDescription = 'Receives LPD print jobs, applies routing rules, and hosts the Beacon Relay admin interface.',
     [string]$SiteName = 'BeaconRelay Admin',
     [string]$HostName = 'beaconrelay.local',
     [int]$KestrelPort = 8080,
     [int]$LpdPort = 515,
-    [string]$AppRoot = 'C:\Apps\BeaconRelay',
+    [string]$AppRoot = 'C:\Program Files\Interbit\Beacon Relay',
     [string]$Runtime = 'win-x64',
     [string]$Configuration = 'Release',
     [string]$AdminUsername = 'admin',
     [string]$AdminPassword = 'change-me-now',
-    [string]$DatabasePath = 'C:\Apps\BeaconRelay\db\beacon-relay.db',
-    [string]$InboxPath = 'C:\Apps\BeaconRelay\data\inbox',
-    [string]$RoutedPath = 'C:\Apps\BeaconRelay\data\routed',
+    [string]$DatabasePath = 'C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db',
+    [string]$InboxPath = 'C:\ProgramData\Interbit\Beacon Relay\data\inbox',
+    [string]$RoutedPath = 'C:\ProgramData\Interbit\Beacon Relay\data\routed',
     [string]$ServiceUser = '',
     [string]$ServicePassword = '',
     [string]$CertificateThumbprint = '',
     [string]$AllowedLpdRemoteAddresses = 'LocalSubnet',
     [switch]$AutoInstallIisProxyModules,
     [switch]$CreateSelfSignedCert,
+    [switch]$StatusAsJson,
+    [switch]$PurgeAppRoot,
     [switch]$SkipIis,
     [switch]$SkipFirewall,
     [switch]$NoPublish
@@ -153,7 +158,311 @@ function Set-JsonValue {
     }
 }
 
+function Remove-ExistingService {
+    param([string]$Name)
+    $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if (-not $svc) {
+        return
+    }
+
+    if ($svc.Status -ne 'Stopped') {
+        if ($PSCmdlet.ShouldProcess($Name, 'Stop existing service')) {
+            Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess($Name, 'Delete existing service')) {
+        & sc.exe delete $Name | Out-Null
+    }
+}
+
+function Remove-IisSiteAndPool {
+    param(
+        [string]$Site,
+        [string]$Pool,
+        [string]$Host
+    )
+
+    if (-not (Test-IisModuleAvailable)) {
+        return
+    }
+
+    Import-Module WebAdministration
+
+    if (Get-Website -Name $Site -ErrorAction SilentlyContinue) {
+        if ($PSCmdlet.ShouldProcess($Site, 'Remove IIS website')) {
+            Remove-Website -Name $Site
+        }
+    }
+
+    if (Test-Path "IIS:\AppPools\$Pool") {
+        if ($PSCmdlet.ShouldProcess($Pool, 'Remove IIS app pool')) {
+            Remove-WebAppPool -Name $Pool
+        }
+    }
+
+    # Best-effort cleanup for host-specific SSL mapping if it still exists.
+    foreach ($path in @("IIS:\SslBindings\0.0.0.0!443!$Host")) {
+        if (Test-Path $path) {
+            if ($PSCmdlet.ShouldProcess($path, 'Remove IIS SSL binding mapping')) {
+                Remove-Item $path -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
+function Remove-FirewallRules {
+    param([string]$Name)
+
+    foreach ($ruleName in @("$Name LPD Inbound", "$Name HTTPS Inbound")) {
+        if (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) {
+            if ($PSCmdlet.ShouldProcess($ruleName, 'Remove firewall rule')) {
+                Remove-NetFirewallRule -DisplayName $ruleName | Out-Null
+            }
+        }
+    }
+}
+
+function Show-DeploymentStatus {
+    param(
+        [string]$SvcName,
+        [string]$Site,
+        [string]$Pool,
+        [string]$Host,
+        [string]$Root,
+        [string]$Thumbprint,
+        [switch]$AsJson
+    )
+
+    $status = [ordered]@{}
+
+    $svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
+    if ($svc) {
+        $status.Service = [ordered]@{
+            Name = $SvcName
+            Exists = $true
+            State = [string]$svc.Status
+        }
+    }
+    else {
+        $status.Service = [ordered]@{
+            Name = $SvcName
+            Exists = $false
+            State = 'NotFound'
+        }
+    }
+
+    if (Test-IisModuleAvailable) {
+        Import-Module WebAdministration
+
+        $siteObj = Get-Website -Name $Site -ErrorAction SilentlyContinue
+        if ($siteObj) {
+            $siteStatus = [ordered]@{
+                Name = $Site
+                Exists = $true
+                State = [string]$siteObj.State
+            }
+        }
+        else {
+            $siteStatus = [ordered]@{
+                Name = $Site
+                Exists = $false
+                State = 'NotFound'
+            }
+        }
+
+        if (Test-Path "IIS:\AppPools\$Pool") {
+            $poolState = (Get-WebAppPoolState -Name $Pool).Value
+            $poolStatus = [ordered]@{
+                Name = $Pool
+                Exists = $true
+                State = [string]$poolState
+            }
+        }
+        else {
+            $poolStatus = [ordered]@{
+                Name = $Pool
+                Exists = $false
+                State = 'NotFound'
+            }
+        }
+
+        $httpsBinding = Get-WebBinding -Name $Site -Protocol https -Port 443 -HostHeader $Host -ErrorAction SilentlyContinue
+        if ($httpsBinding) {
+            $httpsStatus = [ordered]@{
+                Host = $Host
+                Exists = $true
+            }
+        }
+        else {
+            $httpsStatus = [ordered]@{
+                Host = $Host
+                Exists = $false
+            }
+        }
+
+        $status.Iis = [ordered]@{
+            ModuleAvailable = $true
+            Site = $siteStatus
+            AppPool = $poolStatus
+            HttpsBinding = $httpsStatus
+            ArrInstalled = [bool](Test-ArrInstalled)
+        }
+    }
+    else {
+        $status.Iis = [ordered]@{
+            ModuleAvailable = $false
+            Site = $null
+            AppPool = $null
+            HttpsBinding = $null
+            ArrInstalled = [bool](Test-ArrInstalled)
+        }
+    }
+
+    $firewall = @()
+    foreach ($ruleName in @("$SvcName LPD Inbound", "$SvcName HTTPS Inbound")) {
+        $rule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if ($rule) {
+            $firewall += [ordered]@{
+                Name = $ruleName
+                Exists = $true
+                Enabled = [string]$rule.Enabled
+            }
+        }
+        else {
+            $firewall += [ordered]@{
+                Name = $ruleName
+                Exists = $false
+                Enabled = 'NotFound'
+            }
+        }
+    }
+    $status.FirewallRules = $firewall
+
+    if (Test-Path -LiteralPath $Root) {
+        $appRootExists = $true
+    }
+    else {
+        $appRootExists = $false
+    }
+
+    $publishExe = Join-Path $Root 'publish\BeaconRelay.LpdReceiver.exe'
+    if (Test-Path -LiteralPath $publishExe) {
+        $publishedExeExists = $true
+    }
+    else {
+        $publishedExeExists = $false
+    }
+
+    $status.Paths = [ordered]@{
+        AppRoot = $Root
+        AppRootExists = $appRootExists
+        PublishedExe = $publishExe
+        PublishedExeExists = $publishedExeExists
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Thumbprint)) {
+        $certPath = "cert:\LocalMachine\My\$Thumbprint"
+        if (Test-Path $certPath) {
+            $cert = Get-Item $certPath
+            $status.Certificate = [ordered]@{
+                Thumbprint = $Thumbprint
+                Found = $true
+                Subject = $cert.Subject
+                NotAfterUtc = $cert.NotAfter.ToString('u')
+            }
+        }
+        else {
+            $status.Certificate = [ordered]@{
+                Thumbprint = $Thumbprint
+                Found = $false
+                Subject = $null
+                NotAfterUtc = $null
+            }
+        }
+    }
+    else {
+        $status.Certificate = $null
+    }
+
+    if ($AsJson) {
+        $status | ConvertTo-Json -Depth 8
+        return
+    }
+
+    Write-Step 'Current deployment status'
+    Write-Host ("Service:     {0} ({1})" -f $status.Service.Name, $status.Service.State)
+
+    if ($status.Iis.ModuleAvailable) {
+        Write-Host ("IIS Site:    {0} ({1})" -f $status.Iis.Site.Name, $status.Iis.Site.State)
+        Write-Host ("App Pool:    {0} ({1})" -f $status.Iis.AppPool.Name, $status.Iis.AppPool.State)
+        if ($status.Iis.HttpsBinding.Exists) {
+            Write-Host ("HTTPS Bind:  present for host {0}" -f $status.Iis.HttpsBinding.Host)
+        }
+        else {
+            Write-Host ("HTTPS Bind:  not found for host {0}" -f $status.Iis.HttpsBinding.Host)
+        }
+        Write-Host ("ARR Module:  {0}" -f $(if ($status.Iis.ArrInstalled) { 'Installed' } else { 'Missing' }))
+    }
+    else {
+        Write-Host 'IIS:         WebAdministration module unavailable'
+    }
+
+    foreach ($rule in $status.FirewallRules) {
+        if ($rule.Exists) {
+            Write-Host ("Firewall:    {0} ({1})" -f $rule.Name, $rule.Enabled)
+        }
+        else {
+            Write-Host ("Firewall:    {0} (not found)" -f $rule.Name)
+        }
+    }
+
+    Write-Host ("App Root:    {0} ({1})" -f $status.Paths.AppRoot, $(if ($status.Paths.AppRootExists) { 'exists' } else { 'missing' }))
+    Write-Host ("Published EXE: {0} ({1})" -f $status.Paths.PublishedExe, $(if ($status.Paths.PublishedExeExists) { 'present' } else { 'missing' }))
+
+    if ($status.Certificate) {
+        if ($status.Certificate.Found) {
+            Write-Host ("Cert:        found ({0}) expires {1}" -f $status.Certificate.Thumbprint, $status.Certificate.NotAfterUtc)
+        }
+        else {
+            Write-Host ("Cert:        thumbprint not found in LocalMachine\\My ({0})" -f $status.Certificate.Thumbprint)
+        }
+    }
+}
+
 Ensure-Admin
+
+if ($Mode -eq 'Status') {
+    Show-DeploymentStatus -SvcName $ServiceName -Site $SiteName -Pool $SiteName -Host $HostName -Root $AppRoot -Thumbprint $CertificateThumbprint -AsJson:$StatusAsJson
+    exit 0
+}
+
+if ($Mode -eq 'Remove') {
+    Write-Step 'Removing Windows service'
+    Remove-ExistingService -Name $ServiceName
+
+    if (-not $SkipIis) {
+        Write-Step 'Removing IIS website and app pool'
+        Remove-IisSiteAndPool -Site $SiteName -Pool $SiteName -Host $HostName
+    }
+
+    if (-not $SkipFirewall) {
+        Write-Step 'Removing firewall rules'
+        Remove-FirewallRules -Name $ServiceName
+    }
+
+    if ($PurgeAppRoot -and (Test-Path -LiteralPath $AppRoot)) {
+        if ($PSCmdlet.ShouldProcess($AppRoot, 'Delete application root directory')) {
+            Remove-Item -LiteralPath $AppRoot -Recurse -Force
+        }
+    }
+
+    Write-Step 'Removal completed'
+    Write-Host "Service Name: $ServiceName"
+    Write-Host "Site Name:    $SiteName"
+    Write-Host "App Root:     $AppRoot"
+    exit 0
+}
 
 if ($CreateSelfSignedCert) {
     Write-Step 'Creating self-signed TLS certificate'
@@ -212,26 +521,18 @@ if ($PSCmdlet.ShouldProcess($appSettingsPath, 'Write appsettings.json')) {
     Set-Content -LiteralPath $appSettingsPath -Value $json -Encoding UTF8
 }
 
-Write-Step 'Creating/updating Windows service'
+if ($Mode -eq 'Upgrade') {
+    Write-Step 'Upgrading Windows service'
+}
+else {
+    Write-Step 'Creating/updating Windows service'
+}
 $exePath = Join-Path $publishPath 'BeaconRelay.LpdReceiver.exe'
 if (-not (Test-Path -LiteralPath $exePath)) {
     throw "Service executable not found: $exePath"
 }
 
-$existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-if ($existingService) {
-    if ($existingService.Status -ne 'Stopped') {
-        if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop existing service')) {
-            Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 1
-        }
-    }
-
-    if ($PSCmdlet.ShouldProcess($ServiceName, 'Delete existing service')) {
-        & sc.exe delete $ServiceName | Out-Null
-        Start-Sleep -Seconds 1
-    }
-}
+Remove-ExistingService -Name $ServiceName
 
 if ($PSCmdlet.ShouldProcess($ServiceName, 'Create service')) {
     & sc.exe create $ServiceName binPath= ('"' + $exePath + '"') start= auto | Out-Null
@@ -245,6 +546,10 @@ if (-not [string]::IsNullOrWhiteSpace($ServiceUser) -and -not [string]::IsNullOr
 
 if ($PSCmdlet.ShouldProcess($ServiceName, 'Configure service recovery')) {
     & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null
+}
+
+if ($PSCmdlet.ShouldProcess($ServiceName, 'Set service description')) {
+    & sc.exe description $ServiceName $ServiceDescription | Out-Null
 }
 
 if ($PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
@@ -320,24 +625,45 @@ Tip: you can ask this script to auto-install them with -AutoInstallIisProxyModul
     }
 
     if (-not [string]::IsNullOrWhiteSpace($CertificateThumbprint)) {
-        $existingHttpsBinding = Get-WebBinding -Name $SiteName -Protocol https -ErrorAction SilentlyContinue | Where-Object { $_.bindingInformation -like "*:443:$HostName" }
-        if (-not $existingHttpsBinding) {
-            if ($PSCmdlet.ShouldProcess($SiteName, 'Add HTTPS binding')) {
-                New-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName | Out-Null
-            }
-        }
-
         $certPath = "cert:\LocalMachine\My\$CertificateThumbprint"
         if (-not (Test-Path $certPath)) {
             throw "Certificate with thumbprint $CertificateThumbprint not found in LocalMachine\\My."
         }
 
-        if ($PSCmdlet.ShouldProcess($SiteName, 'Assign TLS certificate')) {
-            $bindingPath = "IIS:\SslBindings\0.0.0.0!443!$HostName"
-            if (Test-Path $bindingPath) {
-                Remove-Item $bindingPath -Force
+        $bindingMatch = "*:443:$HostName"
+        $httpsBindings = @(Get-WebBinding -Name $SiteName -Protocol https -ErrorAction SilentlyContinue | Where-Object { $_.bindingInformation -eq $bindingMatch })
+
+        if ($httpsBindings.Count -gt 1) {
+            if ($PSCmdlet.ShouldProcess($SiteName, 'Remove duplicate HTTPS bindings')) {
+                $httpsBindings | Select-Object -Skip 1 | ForEach-Object {
+                    Remove-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName
+                }
             }
-            New-Item $bindingPath -Thumbprint $CertificateThumbprint -SSLFlags 1 | Out-Null
+            $httpsBindings = @(Get-WebBinding -Name $SiteName -Protocol https -ErrorAction SilentlyContinue | Where-Object { $_.bindingInformation -eq $bindingMatch })
+        }
+
+        if ($httpsBindings.Count -eq 0) {
+            if ($PSCmdlet.ShouldProcess($SiteName, 'Add HTTPS binding with SNI')) {
+                New-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName -SslFlags 1 | Out-Null
+            }
+        }
+
+        if ($PSCmdlet.ShouldProcess($SiteName, 'Assign TLS certificate')) {
+            $binding = Get-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName -ErrorAction SilentlyContinue
+            if (-not $binding) {
+                throw "HTTPS binding for host '$HostName' was not found after creation attempt."
+            }
+
+            try {
+                $binding.AddSslCertificate($CertificateThumbprint, 'My')
+            }
+            catch {
+                # Recreate the binding once and retry certificate assignment.
+                Remove-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName -ErrorAction SilentlyContinue
+                New-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName -SslFlags 1 | Out-Null
+                $binding = Get-WebBinding -Name $SiteName -Protocol https -Port 443 -HostHeader $HostName -ErrorAction Stop
+                $binding.AddSslCertificate($CertificateThumbprint, 'My')
+            }
         }
     }
     else {
