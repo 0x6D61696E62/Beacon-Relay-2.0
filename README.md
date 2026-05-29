@@ -75,6 +75,8 @@ Two deployment scripts are provided under `deploy/`:
 - `Deploy-BeaconRelay.ps1`: installs/upgrades/removes the service and IIS proxy on the target machine.
 - `Build-BeaconRelayArtifact.ps1`: builds a portable artifact (`publish/`, deploy scripts, checksums, optional zip) for target machines.
 
+See `deploy/DEPLOY-EXAMPLES.md` for scenario-based commands (new install, artifact install, upgrade, SQLCipher conversion, status, and remove).
+
 ### Build artifact on build machine
 
 ```powershell
