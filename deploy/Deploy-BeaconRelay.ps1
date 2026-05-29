@@ -28,11 +28,17 @@ param(
     [switch]$SkipIis,
     [switch]$SkipFirewall,
     [switch]$ConvertExistingDatabaseToSqlCipher,
+    [string]$DatabaseBackupPath = '',
+    [switch]$SkipDatabaseConversionBackup,
     [switch]$NoPublish
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($SkipDatabaseConversionBackup -and -not [string]::IsNullOrWhiteSpace($DatabaseBackupPath)) {
+    throw 'Specify either -SkipDatabaseConversionBackup or -DatabaseBackupPath, not both.'
+}
 
 function Write-Step {
     param([string]$Message)
@@ -259,7 +265,9 @@ function Invoke-DatabaseSqlCipherConversion {
     param(
         [string]$PublishRoot,
         [string]$DatabaseFile,
-        [string]$Password
+        [string]$Password,
+        [string]$BackupPath = '',
+        [bool]$SkipBackup = $false
     )
 
     if ([string]::IsNullOrWhiteSpace($Password)) {
@@ -284,7 +292,12 @@ function Invoke-DatabaseSqlCipherConversion {
 
     $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
     $temporaryEncryptedPath = "$DatabaseFile.sqlcipher-$timestamp.tmp"
-    $backupPath = "$DatabaseFile.pre-sqlcipher-$timestamp.bak"
+    if ([string]::IsNullOrWhiteSpace($BackupPath)) {
+        $backupPath = "$DatabaseFile.pre-sqlcipher-$timestamp.bak"
+    }
+    else {
+        $backupPath = $BackupPath
+    }
     $walPath = "$DatabaseFile-wal"
     $shmPath = "$DatabaseFile-shm"
     $backupWalPath = "$backupPath-wal"
@@ -324,13 +337,20 @@ function Invoke-DatabaseSqlCipherConversion {
         throw 'SQLCipher conversion did not produce an encrypted database file.'
     }
 
-    if ($PSCmdlet.ShouldProcess($DatabaseFile, 'Backup plaintext SQLite database before SQLCipher replacement')) {
-        Copy-Item -LiteralPath $DatabaseFile -Destination $backupPath -Force
-        if (Test-Path -LiteralPath $walPath) {
-            Copy-Item -LiteralPath $walPath -Destination $backupWalPath -Force
+    if (-not $SkipBackup) {
+        $backupDirectory = Split-Path -Parent $backupPath
+        if (-not [string]::IsNullOrWhiteSpace($backupDirectory)) {
+            Ensure-Directory -Path $backupDirectory
         }
-        if (Test-Path -LiteralPath $shmPath) {
-            Copy-Item -LiteralPath $shmPath -Destination $backupShmPath -Force
+
+        if ($PSCmdlet.ShouldProcess($DatabaseFile, 'Backup plaintext SQLite database before SQLCipher replacement')) {
+            Copy-Item -LiteralPath $DatabaseFile -Destination $backupPath -Force
+            if (Test-Path -LiteralPath $walPath) {
+                Copy-Item -LiteralPath $walPath -Destination $backupWalPath -Force
+            }
+            if (Test-Path -LiteralPath $shmPath) {
+                Copy-Item -LiteralPath $shmPath -Destination $backupShmPath -Force
+            }
         }
     }
 
@@ -345,10 +365,19 @@ function Invoke-DatabaseSqlCipherConversion {
     }
 
     if (-not (Test-SqliteOpen -DatabaseFile $DatabaseFile -Password $Password)) {
+        if ($SkipBackup) {
+            throw 'SQLCipher verification failed after conversion, and backup creation was skipped.'
+        }
+
         throw "SQLCipher verification failed after conversion. Original database backup retained at $backupPath"
     }
 
-    Write-Host "  SQLCipher conversion completed. Plaintext backup: $backupPath" -ForegroundColor DarkGray
+    if ($SkipBackup) {
+        Write-Host '  SQLCipher conversion completed. Backup creation was skipped by request.' -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host "  SQLCipher conversion completed. Plaintext backup: $backupPath" -ForegroundColor DarkGray
+    }
 }
 
 function Remove-IisSiteAndPool {
@@ -701,7 +730,7 @@ if ($PSCmdlet.ShouldProcess($appSettingsPath, 'Write appsettings.json')) {
 if ($ConvertExistingDatabaseToSqlCipher) {
     Write-Step 'Converting existing SQLite database to SQLCipher'
     Stop-ExistingService -Name $ServiceName
-    Invoke-DatabaseSqlCipherConversion -PublishRoot $publishPath -DatabaseFile $DatabasePath -Password $DatabasePassword
+    Invoke-DatabaseSqlCipherConversion -PublishRoot $publishPath -DatabaseFile $DatabasePath -Password $DatabasePassword -BackupPath $DatabaseBackupPath -SkipBackup:$SkipDatabaseConversionBackup
 }
 elseif (-not [string]::IsNullOrWhiteSpace($DatabasePassword) -and (Test-Path -LiteralPath $DatabasePath)) {
     Write-Warning 'DatabasePassword is set and a database already exists, but -ConvertExistingDatabaseToSqlCipher was not specified. Existing plaintext databases are not converted automatically.'
