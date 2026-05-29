@@ -493,13 +493,26 @@ public static class ManagementApiEndpoints
             .Take(10)
             .ToListAsync(cancellationToken);
 
+        var topRuleIds = topRuleRows.Select(x => x.Id).ToList();
+        var deliveredReportCounts = await db.DeliveryWorkItems
+            .AsNoTracking()
+            .Where(x => x.Status == DeliveryWorkItemStatus.Succeeded && topRuleIds.Contains(x.RuleId))
+            .GroupBy(x => x.RuleId)
+            .Select(g => new
+            {
+                RuleId = g.Key,
+                DeliveredReportCount = g.Select(x => x.ReceivedFileId).Distinct().Count()
+            })
+            .ToDictionaryAsync(x => x.RuleId, x => x.DeliveredReportCount, cancellationToken);
+
         var topRules = topRuleRows
             .Select(x => new RuleDestinationCountResult(
                 x.Id,
                 x.Name,
                 x.FolderDestinationCount,
                 x.ForwardDestinationCount,
-                x.TotalDestinationCount))
+                x.TotalDestinationCount,
+                deliveredReportCounts.GetValueOrDefault(x.Id, 0)))
             .ToList();
 
         return Results.Ok(new DeliveryStatusResponse(

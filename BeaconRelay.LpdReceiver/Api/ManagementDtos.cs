@@ -98,4 +98,5 @@ public sealed record RuleDestinationCountResult(
     string RuleName,
     int FolderDestinationCount,
     int ForwardDestinationCount,
-    int TotalDestinationCount);
+    int TotalDestinationCount,
+    int DeliveredReportCount);

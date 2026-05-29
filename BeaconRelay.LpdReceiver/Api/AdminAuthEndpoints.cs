@@ -11,7 +11,7 @@ public static class AdminAuthEndpoints
     public static void MapAdminAuthApi(this WebApplication app)
     {
         app.MapPost("/auth/login", LoginAsync);
-        app.MapPost("/auth/logout", LogoutAsync);
+        app.MapPost("/auth/logout", (Delegate)LogoutAsync);
         app.MapGet("/auth/status", GetStatusHandler);
 
         static IResult GetStatusHandler(HttpContext context, IOptions<AdminAuthOptions> options)

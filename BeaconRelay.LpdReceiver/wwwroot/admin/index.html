@@ -4,27 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Beacon Relay Admin</title>
+  <link rel="stylesheet" href="/admin/theme.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
-
-    :root {
-      --bg: #edf1f7;
-      --bg-soft: #f8fafc;
-      --ink: #1b2735;
-      --ink-soft: #5b6b7f;
-      --card: #ffffff;
-      --line: #d8e0eb;
-      --accent: #0f5cc0;
-      --accent-2: #0e7a73;
-      --accent-3: #2f3f57;
-      --ok: #12824e;
-      --bad: #c73838;
-      --warn: #b27a1d;
-      --shadow-lg: 0 16px 42px rgba(19, 35, 62, 0.16);
-      --shadow-sm: 0 4px 14px rgba(19, 35, 62, 0.08);
-      --radius: 16px;
-    }
-
     * { box-sizing: border-box; }
 
     body {
@@ -885,13 +866,13 @@
             <section class="card">
               <h2>Top Rules By Destinations</h2>
               <div class="body">
-                <div class="hint">Top 10 rules with the highest total configured destinations.</div>
+                <div class="hint">Top 10 rules with the highest total configured destinations and delivered reports.</div>
                 <table>
                   <thead>
-                    <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th></tr>
+                    <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th><th>Delivered Reports</th></tr>
                   </thead>
                   <tbody id="statusTopRulesBody">
-                    <tr><td colspan="4" class="muted">No data yet.</td></tr>
+                    <tr><td colspan="5" class="muted">No data yet.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1593,13 +1574,14 @@
 
       const topRules = status.topRulesByDestinationCount || [];
       el('statusTopRulesBody').innerHTML = topRules.length === 0
-        ? '<tr><td colspan="4" class="muted">No rules with destinations yet.</td></tr>'
+        ? '<tr><td colspan="5" class="muted">No rules with destinations yet.</td></tr>'
         : topRules.map(entry =>
             '<tr>' +
               '<td>' + entry.ruleName + '</td>' +
               '<td>' + entry.folderDestinationCount + '</td>' +
               '<td>' + entry.forwardDestinationCount + '</td>' +
               '<td><strong>' + entry.totalDestinationCount + '</strong></td>' +
+              '<td>' + (entry.deliveredReportCount ?? 0) + '</td>' +
             '</tr>'
           ).join('');
 
