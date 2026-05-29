@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using BeaconRelay.LpdReceiver.Data;
 using BeaconRelay.LpdReceiver.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaconRelay.LpdReceiver.Api;
@@ -47,6 +49,130 @@ public static class ManagementApiEndpoints
         var retention = api.MapGroup("/retention-settings");
         retention.MapGet("/", GetRetentionSettingsAsync);
         retention.MapPut("/", UpdateRetentionSettingsAsync).RequireAuthorization("SettingsOrAdmin");
+
+        var adminUsers = api.MapGroup("/admin-users").RequireAuthorization("AdminOnly");
+        adminUsers.MapGet("/", GetAdminUsersAsync);
+        adminUsers.MapPost("/", CreateAdminUserAsync);
+        adminUsers.MapPut("/{id:int}", UpdateAdminUserAsync);
+        adminUsers.MapDelete("/{id:int}", DeleteAdminUserAsync);
+    }
+
+    private static async Task<IResult> GetAdminUsersAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var users = await db.AdminUsers
+            .AsNoTracking()
+            .OrderBy(x => x.Username)
+            .Select(x => new AdminUserSummaryResult(
+                x.Id,
+                x.Username,
+                x.Role,
+                x.IsEnabled,
+                x.CreatedUtc,
+                x.UpdatedUtc))
+            .ToListAsync(cancellationToken);
+
+        return Results.Ok(users);
+    }
+
+    private static async Task<IResult> CreateAdminUserAsync(AdminUserCreateRequest input, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var errors = ValidateAdminUser(input.Username, input.Password, input.Role, isCreate: true);
+        if (await db.AdminUsers.AnyAsync(x => x.Username == input.Username, cancellationToken))
+        {
+            errors[nameof(input.Username)] = ["A user with this username already exists."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var user = new AdminUserRecord
+        {
+            Username = input.Username.Trim(),
+            Role = input.Role,
+            IsEnabled = input.IsEnabled,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+
+        user.PasswordHash = new PasswordHasher<AdminUserRecord>().HashPassword(user, input.Password);
+
+        db.AdminUsers.Add(user);
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
+        return Results.Created($"/api/admin-users/{user.Id}", new AdminUserSummaryResult(user.Id, user.Username, user.Role, user.IsEnabled, user.CreatedUtc, user.UpdatedUtc));
+    }
+
+    private static async Task<IResult> UpdateAdminUserAsync(int id, AdminUserUpdateRequest input, HttpContext context, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var errors = ValidateAdminUser(input.Username, input.Password, input.Role, isCreate: false);
+        if (await db.AdminUsers.AnyAsync(x => x.Id != id && x.Username == input.Username, cancellationToken))
+        {
+            errors[nameof(input.Username)] = ["A user with this username already exists."];
+        }
+
+        var currentUserIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isCurrentUser = int.TryParse(currentUserIdClaim, out var currentUserId) && currentUserId == id;
+        if (isCurrentUser && !string.Equals(input.Role, AdminRoles.Admin, StringComparison.Ordinal))
+        {
+            errors[nameof(input.Role)] = ["You cannot change your own role away from Admin."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var user = await db.AdminUsers.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (user is null)
+        {
+            return Results.NotFound();
+        }
+
+        user.Username = input.Username.Trim();
+        user.Role = input.Role;
+        user.IsEnabled = input.IsEnabled;
+        user.UpdatedUtc = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(input.Password))
+        {
+            user.PasswordHash = new PasswordHasher<AdminUserRecord>().HashPassword(user, input.Password);
+        }
+
+        var saveError = await TrySaveChangesAsync(db, cancellationToken);
+        if (saveError is not null)
+        {
+            return saveError;
+        }
+
+        return Results.Ok(new AdminUserSummaryResult(user.Id, user.Username, user.Role, user.IsEnabled, user.CreatedUtc, user.UpdatedUtc));
+    }
+
+    private static async Task<IResult> DeleteAdminUserAsync(int id, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var user = await db.AdminUsers.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (user is null)
+        {
+            return Results.NotFound();
+        }
+
+        var remainingAdmins = await db.AdminUsers.CountAsync(x => x.Id != id && x.Role == AdminRoles.Admin && x.IsEnabled, cancellationToken);
+        if (user.Role == AdminRoles.Admin && user.IsEnabled && remainingAdmins == 0)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                [nameof(AdminUserRecord.Role)] = ["Cannot remove the last enabled administrator."]
+            });
+        }
+
+        db.AdminUsers.Remove(user);
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> GetRulesAsync(AppDbContext db, CancellationToken cancellationToken)
@@ -893,6 +1019,40 @@ public static class ManagementApiEndpoints
         if (input.IntervalMinutes < 1)
         {
             errors[nameof(input.IntervalMinutes)] = ["IntervalMinutes must be at least 1."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateAdminUser(string username, string? password, string role, bool isCreate)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            errors[nameof(username)] = ["Username is required."];
+        }
+        else if (username.Trim().Length > 128)
+        {
+            errors[nameof(username)] = ["Username must be 128 characters or fewer."];
+        }
+
+        if (isCreate && string.IsNullOrWhiteSpace(password))
+        {
+            errors[nameof(password)] = ["Password is required."];
+        }
+        else if (!string.IsNullOrWhiteSpace(password) && password.Trim().Length < 8)
+        {
+            errors[nameof(password)] = ["Password must be at least 8 characters."];
+        }
+
+        var isValidRole = string.Equals(role, AdminRoles.Admin, StringComparison.Ordinal)
+            || string.Equals(role, AdminRoles.Settings, StringComparison.Ordinal)
+            || string.Equals(role, AdminRoles.ReadOnly, StringComparison.Ordinal);
+
+        if (!isValidRole)
+        {
+            errors[nameof(role)] = ["Role must be Admin, Settings, or ReadOnly."];
         }
 
         return errors;

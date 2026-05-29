@@ -49,6 +49,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AnyAuthenticated", policy => policy.RequireAuthenticatedUser());
     options.AddPolicy("SettingsOrAdmin", policy => policy.RequireRole(AdminRoles.Admin, AdminRoles.Settings));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole(AdminRoles.Admin));
 });
 
 var healthOptions = builder.Configuration.GetSection(HealthEndpointOptions.SectionName).Get<HealthEndpointOptions>() ?? new HealthEndpointOptions();

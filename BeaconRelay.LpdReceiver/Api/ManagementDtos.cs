@@ -55,6 +55,26 @@ public sealed record AdminLoginRequest(
     string Password,
     bool RememberMe);
 
+public sealed record AdminUserSummaryResult(
+    int Id,
+    string Username,
+    string Role,
+    bool IsEnabled,
+    DateTime CreatedUtc,
+    DateTime UpdatedUtc);
+
+public sealed record AdminUserCreateRequest(
+    string Username,
+    string Password,
+    string Role,
+    bool IsEnabled);
+
+public sealed record AdminUserUpdateRequest(
+    string Username,
+    string? Password,
+    string Role,
+    bool IsEnabled);
+
 public sealed record ReorderRulesRequest(
     IReadOnlyList<int> OrderedRuleIds);
 

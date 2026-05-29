@@ -673,6 +673,10 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h3l4 4v3h-7z"></path><circle cx="8" cy="19" r="1"></circle><circle cx="18" cy="19" r="1"></circle></svg>
             <span class="nav-label">Delivery Queue</span>
           </button>
+          <button data-view-target="administrators" data-access="admin">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3 19c0-3.2 2.6-5.8 5.8-5.8h0.4"></path><circle cx="17" cy="10" r="2.5"></circle><path d="M14.5 19.5c0-2.6 2.1-4.7 4.7-4.7h0.3"></path></svg>
+            <span class="nav-label">Administrators</span>
+          </button>
         </div>
       </aside>
 
@@ -1021,6 +1025,50 @@
           </section>
         </section>
 
+        <section class="view-section" data-view="administrators" data-access="admin">
+          <section class="card">
+            <h2>Administrators</h2>
+            <div class="body">
+              <div class="hint">Only Admin role users can view and modify admin accounts.</div>
+              <div class="row-3">
+                <label>Username
+                  <input id="adminUserName" placeholder="new-admin">
+                </label>
+                <label>Role
+                  <select id="adminUserRole">
+                    <option value="Admin">Admin</option>
+                    <option value="Settings">Settings</option>
+                    <option value="ReadOnly">ReadOnly</option>
+                  </select>
+                </label>
+                <label>Enabled
+                  <select id="adminUserEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Password
+                  <input id="adminUserPassword" type="password" placeholder="Required when creating; leave blank to keep existing on edit">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveAdminUser">Save User</button>
+                <button id="resetAdminUser">Reset Form</button>
+                <button class="refresh" id="refreshAdminUsers">Refresh Users</button>
+              </div>
+              <div class="error" id="adminUserError"></div>
+              <table>
+                <thead>
+                  <tr><th>Username</th><th>Role</th><th>Status</th><th>Updated</th><th>Action</th></tr>
+                </thead>
+                <tbody id="adminUsersBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
         <!-- ── Status Page ───────────────────────────────────────── -->
         <section class="view-section active" data-view="status">
           <div class="status-grid">
@@ -1133,12 +1181,15 @@
       editingFolderId: null,
       editingForwardId: null,
       editingPurgePolicyId: null,
+      editingAdminUserId: null,
       queuePage: 1,
       queueTotalPages: 1,
       queueSelectedId: null,
       isMenuCollapsed: false,
       currentRole: 'ReadOnly',
-      canManageSettings: false
+      canManageSettings: false,
+      canManageAdminUsers: false,
+      adminUsers: []
     };
 
     const viewLabels = {
@@ -1147,7 +1198,8 @@
       rules: 'Rules and Matching',
       folder: 'Folder Routing',
       lpd: 'LPD Forwarding',
-      delivery: 'Delivery Queue'
+      delivery: 'Delivery Queue',
+      administrators: 'Administrators'
     };
 
     function applyMenuState() {
@@ -1163,11 +1215,17 @@
 
     function applyAccessControls() {
       const canManageSettings = state.currentRole === 'Admin' || state.currentRole === 'Settings';
+      const canManageAdminUsers = state.currentRole === 'Admin';
       state.canManageSettings = canManageSettings;
+      state.canManageAdminUsers = canManageAdminUsers;
       document.body.classList.toggle('read-only', !canManageSettings);
 
       document.querySelectorAll('[data-access="settings"]').forEach(section => {
         section.hidden = !canManageSettings;
+      });
+
+      document.querySelectorAll('[data-access="admin"]').forEach(section => {
+        section.hidden = !canManageAdminUsers;
       });
 
       const settingsButtons = [el('saveRetention'), el('refreshRetention'), el('savePurgePolicy'), el('resetPurgePolicy'), el('saveRule'), el('resetRule'), el('refreshRules'), el('saveRuleOrder'), el('saveFolder'), el('resetFolder'), el('saveForward'), el('resetForward')];
@@ -1180,6 +1238,12 @@
         if (!button) return;
         button.hidden = !canManageSettings;
         button.disabled = !canManageSettings;
+      });
+
+      [el('saveAdminUser'), el('resetAdminUser'), el('refreshAdminUsers')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageAdminUsers;
+        button.disabled = !canManageAdminUsers;
       });
     }
 
@@ -1413,6 +1477,108 @@
     function setPurgePolicyOptions() {
       const html = state.purgePolicies.map(policy => '<option value="' + policy.id + '">' + policy.name + '</option>').join('');
       el('purgePolicyId').innerHTML = html || '<option value="">No purge policies</option>';
+    }
+
+    function renderAdminUsers() {
+      el('adminUsersBody').innerHTML = state.adminUsers.map(user =>
+        '<tr>' +
+          '<td>' + user.username + '</td>' +
+          '<td>' + user.role + '</td>' +
+          '<td>' + statusPill(user.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td>' + formatLocalTime(user.updatedUtc) + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editAdminUser(' + user.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteAdminUser(' + user.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function resetAdminUserForm() {
+      state.editingAdminUserId = null;
+      el('adminUserName').value = '';
+      el('adminUserRole').value = 'Admin';
+      el('adminUserEnabled').value = 'true';
+      el('adminUserPassword').value = '';
+      el('adminUserError').textContent = '';
+    }
+
+    function editAdminUser(id) {
+      const user = state.adminUsers.find(x => x.id === id);
+      if (!user) {
+        return;
+      }
+
+      state.editingAdminUserId = id;
+      el('adminUserName').value = user.username;
+      el('adminUserRole').value = user.role;
+      el('adminUserEnabled').value = user.isEnabled ? 'true' : 'false';
+      el('adminUserPassword').value = '';
+      el('adminUserError').textContent = '';
+    }
+
+    async function loadAdminUsers() {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      state.adminUsers = await fetchJson('/api/admin-users');
+      renderAdminUsers();
+    }
+
+    async function saveAdminUser() {
+      try {
+        if (!state.canManageAdminUsers) {
+          return;
+        }
+
+        el('adminUserError').textContent = '';
+        const request = {
+          username: el('adminUserName').value.trim(),
+          password: el('adminUserPassword').value,
+          role: el('adminUserRole').value,
+          isEnabled: el('adminUserEnabled').value === 'true'
+        };
+
+        if (state.editingAdminUserId) {
+          await fetchJson('/api/admin-users/' + state.editingAdminUserId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        } else {
+          await fetchJson('/api/admin-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        }
+
+        resetAdminUserForm();
+        await loadAdminUsers();
+      } catch (err) {
+        el('adminUserError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function deleteAdminUser(id) {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      if (!confirm('Delete this admin user?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/admin-users/' + id, { method: 'DELETE' });
+        if (state.editingAdminUserId === id) {
+          resetAdminUserForm();
+        }
+        await loadAdminUsers();
+      } catch (err) {
+        el('adminUserError').textContent = 'Delete failed: ' + err.message;
+      }
     }
 
     function renderPurgePolicies() {
@@ -1953,8 +2119,14 @@
     window.selectQueueItem = selectQueueItem;
     window.retryItem = retryItem;
     window.editPurgePolicy = editPurgePolicy;
+    window.editAdminUser = editAdminUser;
+    window.deleteAdminUser = deleteAdminUser;
 
     function setActiveView(viewName) {
+      if (viewName === 'administrators' && !state.canManageAdminUsers) {
+        viewName = 'status';
+      }
+
       document.querySelectorAll('[data-view]').forEach(section => {
         section.classList.toggle('active', section.getAttribute('data-view') === viewName);
       });
@@ -1976,6 +2148,10 @@
         if (target === 'retention') {
           loadRetentionSettings();
           loadPurgePolicies();
+        }
+        if (target === 'administrators') {
+          resetAdminUserForm();
+          loadAdminUsers();
         }
       });
     });
@@ -2041,6 +2217,9 @@
     });
     el('savePurgePolicy').addEventListener('click', savePurgePolicy);
     el('resetPurgePolicy').addEventListener('click', resetPurgePolicyForm);
+    el('saveAdminUser').addEventListener('click', saveAdminUser);
+    el('resetAdminUser').addEventListener('click', resetAdminUserForm);
+    el('refreshAdminUsers').addEventListener('click', async () => { await loadAdminUsers(); });
     el('refreshQueue').addEventListener('click', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
