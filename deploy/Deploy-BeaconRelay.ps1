@@ -17,6 +17,7 @@ param(
     [string]$ServicePassword = '',
     [string]$CertificateThumbprint = '',
     [string]$AllowedLpdRemoteAddresses = 'LocalSubnet',
+    [switch]$CreateSelfSignedCert,
     [switch]$SkipIis,
     [switch]$SkipFirewall,
     [switch]$NoPublish
@@ -51,6 +52,31 @@ function Test-IisModuleAvailable {
     return [bool](Get-Module -ListAvailable -Name WebAdministration)
 }
 
+function Test-ArrInstalled {
+    # ARR installs its schema file here; if absent the proxy config section doesn't exist.
+    $schemaPath = Join-Path $env:SystemRoot 'System32\inetsrv\config\schema\arr_schema.xml'
+    return (Test-Path $schemaPath)
+}
+
+function New-DeploymentCertificate {
+    param([string]$DnsName)
+    $existing = Get-ChildItem 'Cert:\LocalMachine\My' |
+        Where-Object { $_.DnsNameList.Unicode -contains $DnsName } |
+        Sort-Object NotAfter -Descending |
+        Select-Object -First 1
+    if ($existing) {
+        Write-Host "  Re-using existing certificate for $DnsName (thumbprint: $($existing.Thumbprint))" -ForegroundColor DarkGray
+        return $existing.Thumbprint
+    }
+    $cert = New-SelfSignedCertificate `
+        -DnsName $DnsName `
+        -CertStoreLocation 'Cert:\LocalMachine\My' `
+        -FriendlyName "BeaconRelay $DnsName" `
+        -NotAfter (Get-Date).AddYears(3)
+    Write-Host "  Created self-signed certificate: $($cert.Thumbprint)" -ForegroundColor DarkGray
+    return $cert.Thumbprint
+}
+
 function Ensure-IisFeatures {
     if (Get-Command Install-WindowsFeature -ErrorAction SilentlyContinue) {
         $features = @('Web-Server', 'Web-WebServer', 'Web-Common-Http', 'Web-Static-Content', 'Web-Default-Doc', 'Web-Http-Errors', 'Web-Http-Redirect', 'Web-Health', 'Web-Http-Logging', 'Web-Performance', 'Web-Stat-Compression', 'Web-Security', 'Web-Filtering', 'Web-App-Dev', 'Web-Net-Ext45', 'Web-Asp-Net45', 'Web-Mgmt-Tools')
@@ -68,14 +94,7 @@ function Ensure-IisFeatures {
 
     Import-Module WebAdministration
 
-    # ARR + URL Rewrite are not native Windows features.
-    # If proxy section is missing, emit actionable guidance.
-    try {
-        Get-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name '.' | Out-Null
-    }
-    catch {
-        throw 'IIS ARR/URL Rewrite not detected. Install URL Rewrite and ARR modules, then re-run.'
-    }
+    # ARR availability is checked separately via Test-ArrInstalled; nothing to validate here.
 }
 
 function Set-JsonValue {
@@ -104,6 +123,11 @@ function Set-JsonValue {
 }
 
 Ensure-Admin
+
+if ($CreateSelfSignedCert) {
+    Write-Step 'Creating self-signed TLS certificate'
+    $CertificateThumbprint = New-DeploymentCertificate -DnsName $HostName
+}
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $repoRoot 'BeaconRelay.LpdReceiver\BeaconRelay.LpdReceiver.csproj'
@@ -200,10 +224,22 @@ if (-not $SkipIis) {
     Write-Step 'Configuring IIS reverse proxy'
     Ensure-IisFeatures
 
-    # Enable ARR proxy
-    if ($PSCmdlet.ShouldProcess('IIS', 'Enable ARR proxy')) {
-        Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'enabled' -Value 'True'
-        Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'preserveHostHeader' -Value 'True'
+    # Enable ARR proxy (only if ARR is installed)
+    if (Test-ArrInstalled) {
+        if ($PSCmdlet.ShouldProcess('IIS', 'Enable ARR proxy')) {
+            Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'enabled' -Value 'True'
+            Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'preserveHostHeader' -Value 'True'
+        }
+    }
+    else {
+        Write-Warning @"
+IIS Application Request Routing (ARR) is not installed. The IIS site will be created
+but reverse-proxy forwarding to Kestrel will NOT work until ARR is installed.
+
+Install both modules (in this order) from IIS.NET, then re-run the script:
+  1. URL Rewrite 2.1  https://www.iis.net/downloads/microsoft/url-rewrite
+  2. ARR 3.0          https://www.iis.net/downloads/microsoft/application-request-routing
+"@
     }
 
     $proxyWebConfig = @"
