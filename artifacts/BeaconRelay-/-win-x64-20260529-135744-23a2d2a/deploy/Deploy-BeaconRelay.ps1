@@ -30,7 +30,6 @@ param(
     [switch]$ConvertExistingDatabaseToSqlCipher,
     [string]$DatabaseBackupPath = '',
     [switch]$SkipDatabaseConversionBackup,
-    [switch]$DatabaseConversionWorker,
     [switch]$NoPublish
 )
 
@@ -385,7 +384,7 @@ function Remove-IisSiteAndPool {
     param(
         [string]$Site,
         [string]$Pool,
-        [string]$HostName
+        [string]$Host
     )
 
     if (-not (Test-IisModuleAvailable)) {
@@ -407,7 +406,7 @@ function Remove-IisSiteAndPool {
     }
 
     # Best-effort cleanup for host-specific SSL mapping if it still exists.
-    foreach ($path in @("IIS:\SslBindings\0.0.0.0!443!$HostName")) {
+    foreach ($path in @("IIS:\SslBindings\0.0.0.0!443!$Host")) {
         if (Test-Path $path) {
             if ($PSCmdlet.ShouldProcess($path, 'Remove IIS SSL binding mapping')) {
                 Remove-Item $path -Force -ErrorAction SilentlyContinue
@@ -433,7 +432,7 @@ function Show-DeploymentStatus {
         [string]$SvcName,
         [string]$Site,
         [string]$Pool,
-        [string]$HostName,
+        [string]$Host,
         [string]$Root,
         [string]$Thumbprint,
         [switch]$AsJson
@@ -492,16 +491,16 @@ function Show-DeploymentStatus {
             }
         }
 
-        $httpsBinding = Get-WebBinding -Name $Site -Protocol https -Port 443 -HostHeader $HostName -ErrorAction SilentlyContinue
+        $httpsBinding = Get-WebBinding -Name $Site -Protocol https -Port 443 -HostHeader $Host -ErrorAction SilentlyContinue
         if ($httpsBinding) {
             $httpsStatus = [ordered]@{
-                Host = $HostName
+                Host = $Host
                 Exists = $true
             }
         }
         else {
             $httpsStatus = [ordered]@{
-                Host = $HostName
+                Host = $Host
                 Exists = $false
             }
         }
@@ -637,15 +636,8 @@ function Show-DeploymentStatus {
 
 Ensure-Admin
 
-if ($DatabaseConversionWorker) {
-    Write-Step 'Running SQLCipher conversion worker'
-    $workerPublishPath = Join-Path $AppRoot 'publish'
-    Invoke-DatabaseSqlCipherConversion -PublishRoot $workerPublishPath -DatabaseFile $DatabasePath -Password $DatabasePassword -BackupPath $DatabaseBackupPath -SkipBackup:$SkipDatabaseConversionBackup
-    exit 0
-}
-
 if ($Mode -eq 'Status') {
-    Show-DeploymentStatus -SvcName $ServiceName -Site $SiteName -Pool $SiteName -HostName $HostName -Root $AppRoot -Thumbprint $CertificateThumbprint -AsJson:$StatusAsJson
+    Show-DeploymentStatus -SvcName $ServiceName -Site $SiteName -Pool $SiteName -Host $HostName -Root $AppRoot -Thumbprint $CertificateThumbprint -AsJson:$StatusAsJson
     exit 0
 }
 
@@ -655,7 +647,7 @@ if ($Mode -eq 'Remove') {
 
     if (-not $SkipIis) {
         Write-Step 'Removing IIS website and app pool'
-        Remove-IisSiteAndPool -Site $SiteName -Pool $SiteName -HostName $HostName
+        Remove-IisSiteAndPool -Site $SiteName -Pool $SiteName -Host $HostName
     }
 
     if (-not $SkipFirewall) {
@@ -738,63 +730,7 @@ if ($PSCmdlet.ShouldProcess($appSettingsPath, 'Write appsettings.json')) {
 if ($ConvertExistingDatabaseToSqlCipher) {
     Write-Step 'Converting existing SQLite database to SQLCipher'
     Stop-ExistingService -Name $ServiceName
-
-    $isPowerShellCore = $PSVersionTable.PSEdition -eq 'Core' -and $PSVersionTable.PSVersion.Major -ge 7
-    if ($isPowerShellCore) {
-        Invoke-DatabaseSqlCipherConversion -PublishRoot $publishPath -DatabaseFile $DatabasePath -Password $DatabasePassword -BackupPath $DatabaseBackupPath -SkipBackup:$SkipDatabaseConversionBackup
-    }
-    else {
-        $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
-        if (-not $pwsh) {
-            throw @"
-SQLCipher conversion requires PowerShell 7+ (pwsh) because the conversion logic loads .NET runtime assemblies from publish output.
-
-Install PowerShell 7 and re-run this command, or run deployment without -ConvertExistingDatabaseToSqlCipher.
-"@
-        }
-
-        $workerArgs = @(
-            '-ExecutionPolicy', 'Bypass',
-            '-File', $PSCommandPath,
-            '-Mode', $Mode,
-            '-ServiceName', $ServiceName,
-            '-ServiceDescription', $ServiceDescription,
-            '-SiteName', $SiteName,
-            '-HostName', $HostName,
-            '-KestrelPort', $KestrelPort,
-            '-LpdPort', $LpdPort,
-            '-AppRoot', $AppRoot,
-            '-Runtime', $Runtime,
-            '-Configuration', $Configuration,
-            '-AdminUsername', $AdminUsername,
-            '-AdminPassword', $AdminPassword,
-            '-DatabasePassword', $DatabasePassword,
-            '-DatabasePath', $DatabasePath,
-            '-InboxPath', $InboxPath,
-            '-RoutedPath', $RoutedPath,
-            '-ServiceUser', $ServiceUser,
-            '-ServicePassword', $ServicePassword,
-            '-CertificateThumbprint', $CertificateThumbprint,
-            '-AllowedLpdRemoteAddresses', $AllowedLpdRemoteAddresses,
-            '-DatabaseBackupPath', $DatabaseBackupPath,
-            '-DatabaseConversionWorker'
-        )
-
-        if ($SkipDatabaseConversionBackup) {
-            $workerArgs += '-SkipDatabaseConversionBackup'
-        }
-
-        if ($NoPublish) {
-            $workerArgs += '-NoPublish'
-        }
-
-        if ($PSCmdlet.ShouldProcess($DatabasePath, 'Run SQLCipher conversion in pwsh worker')) {
-            & $pwsh.Source @workerArgs
-            if ($LASTEXITCODE -ne 0) {
-                throw 'SQLCipher conversion worker failed.'
-            }
-        }
-    }
+    Invoke-DatabaseSqlCipherConversion -PublishRoot $publishPath -DatabaseFile $DatabasePath -Password $DatabasePassword -BackupPath $DatabaseBackupPath -SkipBackup:$SkipDatabaseConversionBackup
 }
 elseif (-not [string]::IsNullOrWhiteSpace($DatabasePassword) -and (Test-Path -LiteralPath $DatabasePath)) {
     Write-Warning 'DatabasePassword is set and a database already exists, but -ConvertExistingDatabaseToSqlCipher was not specified. Existing plaintext databases are not converted automatically.'
