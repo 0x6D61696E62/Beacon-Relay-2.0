@@ -17,6 +17,7 @@ param(
     [string]$ServicePassword = '',
     [string]$CertificateThumbprint = '',
     [string]$AllowedLpdRemoteAddresses = 'LocalSubnet',
+    [switch]$AutoInstallIisProxyModules,
     [switch]$CreateSelfSignedCert,
     [switch]$SkipIis,
     [switch]$SkipFirewall,
@@ -56,6 +57,36 @@ function Test-ArrInstalled {
     # ARR installs its schema file here; if absent the proxy config section doesn't exist.
     $schemaPath = Join-Path $env:SystemRoot 'System32\inetsrv\config\schema\arr_schema.xml'
     return (Test-Path $schemaPath)
+}
+
+function Ensure-IisProxyModules {
+    if (Test-ArrInstalled) {
+        return $true
+    }
+
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Warning 'winget is not available. Install IIS URL Rewrite + ARR manually.'
+        return $false
+    }
+
+    if ($PSCmdlet.ShouldProcess('IIS URL Rewrite 2.1', 'Install module via winget')) {
+        & winget install --id Microsoft.IIS.URLRewrite --exact --silent --accept-package-agreements --accept-source-agreements --scope machine
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning 'Failed to install IIS URL Rewrite via winget.'
+            return $false
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess('IIS ARR 3.0', 'Install module via winget')) {
+        & winget install --id Microsoft.IIS.ApplicationRequestRouting --exact --silent --accept-package-agreements --accept-source-agreements --scope machine
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning 'Failed to install IIS ARR via winget.'
+            return $false
+        }
+    }
+
+    return (Test-ArrInstalled)
 }
 
 function New-DeploymentCertificate {
@@ -224,8 +255,14 @@ if (-not $SkipIis) {
     Write-Step 'Configuring IIS reverse proxy'
     Ensure-IisFeatures
 
+    $arrAvailable = Test-ArrInstalled
+    if (-not $arrAvailable -and $AutoInstallIisProxyModules) {
+        Write-Step 'Installing IIS proxy modules (URL Rewrite + ARR)'
+        $arrAvailable = Ensure-IisProxyModules
+    }
+
     # Enable ARR proxy (only if ARR is installed)
-    if (Test-ArrInstalled) {
+    if ($arrAvailable) {
         if ($PSCmdlet.ShouldProcess('IIS', 'Enable ARR proxy')) {
             Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'enabled' -Value 'True'
             Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name 'preserveHostHeader' -Value 'True'
@@ -239,6 +276,8 @@ but reverse-proxy forwarding to Kestrel will NOT work until ARR is installed.
 Install both modules (in this order) from IIS.NET, then re-run the script:
   1. URL Rewrite 2.1  https://www.iis.net/downloads/microsoft/url-rewrite
   2. ARR 3.0          https://www.iis.net/downloads/microsoft/application-request-routing
+
+Tip: you can ask this script to auto-install them with -AutoInstallIisProxyModules.
 "@
     }
 
