@@ -676,7 +676,12 @@ if ($Mode -eq 'Remove') {
     exit 0
 }
 
-if ($CreateSelfSignedCert) {
+$shouldAutoCreateSelfSignedCert =
+    -not $SkipIis
+    -and ($Mode -eq 'Deploy' -or $Mode -eq 'Upgrade')
+    -and [string]::IsNullOrWhiteSpace($CertificateThumbprint)
+
+if ($shouldAutoCreateSelfSignedCert -or $CreateSelfSignedCert) {
     Write-Step 'Creating self-signed TLS certificate'
     $CertificateThumbprint = New-DeploymentCertificate -DnsName $HostName
 }
