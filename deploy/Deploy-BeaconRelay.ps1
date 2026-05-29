@@ -13,6 +13,7 @@ param(
     [string]$Configuration = 'Release',
     [string]$AdminUsername = 'admin',
     [string]$AdminPassword = 'change-me-now',
+    [string]$DatabasePassword = '',
     [string]$DatabasePath = 'C:\ProgramData\Interbit\Beacon Relay\db\beacon-relay.db',
     [string]$InboxPath = 'C:\ProgramData\Interbit\Beacon Relay\data\inbox',
     [string]$RoutedPath = 'C:\ProgramData\Interbit\Beacon Relay\data\routed',
@@ -26,6 +27,7 @@ param(
     [switch]$PurgeAppRoot,
     [switch]$SkipIis,
     [switch]$SkipFirewall,
+    [switch]$ConvertExistingDatabaseToSqlCipher,
     [switch]$NoPublish
 )
 
@@ -174,6 +176,179 @@ function Remove-ExistingService {
     if ($PSCmdlet.ShouldProcess($Name, 'Delete existing service')) {
         & sc.exe delete $Name | Out-Null
     }
+}
+
+function Stop-ExistingService {
+    param([string]$Name)
+    $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if (-not $svc) {
+        return
+    }
+
+    if ($svc.Status -ne 'Stopped') {
+        if ($PSCmdlet.ShouldProcess($Name, 'Stop existing service')) {
+            Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Import-SqlCipherAssemblies {
+    param([string]$PublishRoot)
+
+    $requiredAssemblies = @(
+        'SQLitePCLRaw.core.dll',
+        'SQLitePCLRaw.provider.e_sqlcipher.dll',
+        'SQLitePCLRaw.batteries_v2.dll',
+        'Microsoft.Data.Sqlite.dll'
+    )
+
+    foreach ($assemblyName in $requiredAssemblies) {
+        $assemblyPath = Join-Path $PublishRoot $assemblyName
+        if (-not (Test-Path -LiteralPath $assemblyPath)) {
+            throw "Required SQLCipher assembly not found in publish output: $assemblyPath"
+        }
+
+        [System.Reflection.Assembly]::LoadFrom($assemblyPath) | Out-Null
+    }
+
+    [SQLitePCL.Batteries_V2]::Init()
+}
+
+function Test-SqliteOpen {
+    param(
+        [string]$DatabaseFile,
+        [string]$Password = ''
+    )
+
+    if (-not (Test-Path -LiteralPath $DatabaseFile)) {
+        return $false
+    }
+
+    $connectionStringBuilder = [Microsoft.Data.Sqlite.SqliteConnectionStringBuilder]::new()
+    $connectionStringBuilder.DataSource = $DatabaseFile
+    $connectionStringBuilder.Mode = [Microsoft.Data.Sqlite.SqliteOpenMode]::ReadWrite
+    if (-not [string]::IsNullOrWhiteSpace($Password)) {
+        $connectionStringBuilder.Password = $Password
+    }
+
+    $connection = $null
+    try {
+        $connection = [Microsoft.Data.Sqlite.SqliteConnection]::new($connectionStringBuilder.ToString())
+        $connection.Open()
+        $command = $connection.CreateCommand()
+        $command.CommandText = 'SELECT COUNT(*) FROM sqlite_master;'
+        [void]$command.ExecuteScalar()
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if ($null -ne $connection) {
+            $connection.Dispose()
+        }
+    }
+}
+
+function Convert-ToSqlLiteral {
+    param([string]$Value)
+    return $Value.Replace("'", "''")
+}
+
+function Invoke-DatabaseSqlCipherConversion {
+    param(
+        [string]$PublishRoot,
+        [string]$DatabaseFile,
+        [string]$Password
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Password)) {
+        throw 'DatabasePassword is required when converting an existing database to SQLCipher.'
+    }
+
+    if (-not (Test-Path -LiteralPath $DatabaseFile)) {
+        Write-Host '  Database file not found. Skipping SQLCipher conversion.' -ForegroundColor DarkGray
+        return
+    }
+
+    Import-SqlCipherAssemblies -PublishRoot $PublishRoot
+
+    if (Test-SqliteOpen -DatabaseFile $DatabaseFile -Password $Password) {
+        Write-Host '  Database already opens with the configured SQLCipher password. Skipping conversion.' -ForegroundColor DarkGray
+        return
+    }
+
+    if (-not (Test-SqliteOpen -DatabaseFile $DatabaseFile)) {
+        throw 'Existing database is not readable as plaintext SQLite, and it did not open with the provided SQLCipher password. Aborting conversion.'
+    }
+
+    $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
+    $temporaryEncryptedPath = "$DatabaseFile.sqlcipher-$timestamp.tmp"
+    $backupPath = "$DatabaseFile.pre-sqlcipher-$timestamp.bak"
+    $walPath = "$DatabaseFile-wal"
+    $shmPath = "$DatabaseFile-shm"
+    $backupWalPath = "$backupPath-wal"
+    $backupShmPath = "$backupPath-shm"
+
+    $sourceBuilder = [Microsoft.Data.Sqlite.SqliteConnectionStringBuilder]::new()
+    $sourceBuilder.DataSource = $DatabaseFile
+    $sourceBuilder.Mode = [Microsoft.Data.Sqlite.SqliteOpenMode]::ReadWrite
+
+    $connection = $null
+    try {
+        $connection = [Microsoft.Data.Sqlite.SqliteConnection]::new($sourceBuilder.ToString())
+        $connection.Open()
+
+        $sqlStatements = @(
+            'PRAGMA busy_timeout = 5000;',
+            'PRAGMA wal_checkpoint(FULL);',
+            ('ATTACH DATABASE ''{0}'' AS encrypted KEY ''{1}'';' -f (Convert-ToSqlLiteral $temporaryEncryptedPath), (Convert-ToSqlLiteral $Password)),
+            'SELECT sqlcipher_export(''encrypted'');',
+            'DETACH DATABASE encrypted;'
+        )
+
+        foreach ($statement in $sqlStatements) {
+            $command = $connection.CreateCommand()
+            $command.CommandText = $statement
+            [void]$command.ExecuteNonQuery()
+            $command.Dispose()
+        }
+    }
+    finally {
+        if ($null -ne $connection) {
+            $connection.Dispose()
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $temporaryEncryptedPath)) {
+        throw 'SQLCipher conversion did not produce an encrypted database file.'
+    }
+
+    if ($PSCmdlet.ShouldProcess($DatabaseFile, 'Backup plaintext SQLite database before SQLCipher replacement')) {
+        Copy-Item -LiteralPath $DatabaseFile -Destination $backupPath -Force
+        if (Test-Path -LiteralPath $walPath) {
+            Copy-Item -LiteralPath $walPath -Destination $backupWalPath -Force
+        }
+        if (Test-Path -LiteralPath $shmPath) {
+            Copy-Item -LiteralPath $shmPath -Destination $backupShmPath -Force
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess($DatabaseFile, 'Replace plaintext SQLite database with SQLCipher-encrypted database')) {
+        Move-Item -LiteralPath $temporaryEncryptedPath -Destination $DatabaseFile -Force
+        if (Test-Path -LiteralPath $walPath) {
+            Remove-Item -LiteralPath $walPath -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $shmPath) {
+            Remove-Item -LiteralPath $shmPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if (-not (Test-SqliteOpen -DatabaseFile $DatabaseFile -Password $Password)) {
+        throw "SQLCipher verification failed after conversion. Original database backup retained at $backupPath"
+    }
+
+    Write-Host "  SQLCipher conversion completed. Plaintext backup: $backupPath" -ForegroundColor DarkGray
 }
 
 function Remove-IisSiteAndPool {
@@ -510,15 +685,26 @@ if (-not (Test-Path -LiteralPath $appSettingsPath)) {
 
 $appSettings = Get-Content -Raw -LiteralPath $appSettingsPath | ConvertFrom-Json
 Set-JsonValue -Object $appSettings -Path @('Health', 'Port') -Value $KestrelPort
-Set-JsonValue -Object $appSettings -Path @('AdminAuth', 'Enabled') -Value $true
+# AdminAuth now supplies bootstrap credentials for first-run admin user creation.
+Set-JsonValue -Object $appSettings -Path @('AdminAuth', 'Enabled') -Value $false
 Set-JsonValue -Object $appSettings -Path @('AdminAuth', 'Username') -Value $AdminUsername
 Set-JsonValue -Object $appSettings -Path @('AdminAuth', 'Password') -Value $AdminPassword
 Set-JsonValue -Object $appSettings -Path @('Database', 'ConnectionString') -Value ("Data Source={0}" -f $DatabasePath)
+Set-JsonValue -Object $appSettings -Path @('Database', 'Password') -Value $DatabasePassword
 Set-JsonValue -Object $appSettings -Path @('Storage', 'OutputDirectory') -Value $InboxPath
 
 if ($PSCmdlet.ShouldProcess($appSettingsPath, 'Write appsettings.json')) {
     $json = $appSettings | ConvertTo-Json -Depth 20
     Set-Content -LiteralPath $appSettingsPath -Value $json -Encoding UTF8
+}
+
+if ($ConvertExistingDatabaseToSqlCipher) {
+    Write-Step 'Converting existing SQLite database to SQLCipher'
+    Stop-ExistingService -Name $ServiceName
+    Invoke-DatabaseSqlCipherConversion -PublishRoot $publishPath -DatabaseFile $DatabasePath -Password $DatabasePassword
+}
+elseif (-not [string]::IsNullOrWhiteSpace($DatabasePassword) -and (Test-Path -LiteralPath $DatabasePath)) {
+    Write-Warning 'DatabasePassword is set and a database already exists, but -ConvertExistingDatabaseToSqlCipher was not specified. Existing plaintext databases are not converted automatically.'
 }
 
 if ($Mode -eq 'Upgrade') {
@@ -694,6 +880,9 @@ Write-Host "Host Name:    $HostName"
 Write-Host "Kestrel Port: $KestrelPort"
 Write-Host "LPD Port:     $LpdPort"
 Write-Host "App Root:     $AppRoot"
+if ([string]::IsNullOrWhiteSpace($DatabasePassword)) {
+    Write-Warning 'DatabasePassword was not set. The deployed database will not use SQLCipher encryption.'
+}
 Write-Host ''
 Write-Host 'Quick checks:' -ForegroundColor Yellow
 Write-Host "1) sc.exe query $ServiceName"
