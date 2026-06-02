@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Beacon Relay Login</title>
-  <link rel="stylesheet" href="/admin/theme.css">
+  <link rel="stylesheet" href="admin/theme.css">
   <style>
     * { box-sizing: border-box; }
 
@@ -145,12 +145,12 @@
   </div>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const returnUrl = params.get('returnUrl') || '/admin/index.html';
+    const returnUrl = params.get('returnUrl') || 'admin/index.html';
     const el = (id) => document.getElementById(id);
 
     async function submitLogin() {
       el('error').textContent = '';
-      const response = await fetch('/auth/login', {
+      const response = await fetch('auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

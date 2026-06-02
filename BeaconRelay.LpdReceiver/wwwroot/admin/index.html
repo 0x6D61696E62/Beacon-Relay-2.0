@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Beacon Relay Admin</title>
-  <link rel="stylesheet" href="/admin/theme.css">
+  <link rel="stylesheet" href="theme.css">
   <style>
     :root {
       --menu-width: 286px;
@@ -1254,8 +1254,34 @@
       document.documentElement.style.setProperty('--header-offset', headerHeight + 'px');
     }
 
+    function appRootPath() {
+      const path = window.location.pathname || '/';
+      const lowerPath = path.toLowerCase();
+
+      const suffixes = ['/admin/index.html', '/admin/', '/admin'];
+      for (const suffix of suffixes) {
+        if (!lowerPath.endsWith(suffix)) {
+          continue;
+        }
+
+        const root = path.slice(0, path.length - suffix.length);
+        return root || '';
+      }
+
+      return '';
+    }
+
+    function resolveAppUrl(url) {
+      if (typeof url !== 'string' || !url.startsWith('/')) {
+        return url;
+      }
+
+      const root = appRootPath();
+      return root ? (root + url) : url;
+    }
+
     async function fetchJson(url, options) {
-      const response = await fetch(url, { credentials: 'same-origin', ...options });
+      const response = await fetch(resolveAppUrl(url), { credentials: 'same-origin', ...options });
       let payload = null;
 
       const contentType = (response.headers.get('content-type') || '').toLowerCase();
@@ -2004,7 +2030,7 @@
         // Redirect anyway so the user can re-authenticate even if logout call fails.
       }
 
-      window.location.href = '/login.html';
+      window.location.href = resolveAppUrl('/login.html');
     }
 
     // ── Status page ────────────────────────────────────────────────
