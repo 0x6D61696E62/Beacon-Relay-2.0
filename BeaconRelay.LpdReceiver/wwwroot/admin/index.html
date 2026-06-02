@@ -432,6 +432,10 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .view-section[data-view="delivery"] .card {
+      overflow: visible;
+    }
+
     .card h2 {
       padding: 14px 16px;
       font-size: 1.02rem;
@@ -447,6 +451,70 @@
       gap: 10px;
       margin-bottom: 12px;
       align-items: end;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar {
+      align-items: end;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > label {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 150px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(1),
+    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(3) {
+      flex: 0 0 170px;
+      min-width: 170px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(2) {
+      flex: 1 1 340px;
+      min-width: 260px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > #refreshQueue {
+      align-self: end;
+    }
+
+    @media (max-width: 1080px) {
+      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(1),
+      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(3) {
+        flex: 1 1 180px;
+        min-width: 160px;
+      }
+
+      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(2) {
+        flex: 1 1 280px;
+        min-width: 220px;
+      }
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar {
+      align-items: center;
+      gap: 8px;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > label {
+      margin-bottom: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: auto;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > label input {
+      width: 84px;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > #pageSummary {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 4px;
     }
 
     button {
@@ -613,11 +681,18 @@
     }
 
     @media (min-width: 1000px) {
-      .details-panel {
+      .delivery-grid-anchor {
+        position: sticky;
+        top: calc(var(--header-offset) + 12px);
         align-self: start;
+        max-height: calc(100vh - var(--header-offset) - 24px);
+        overflow: auto;
+      }
+
+      .details-panel {
+        position: static;
         max-height: none;
         overflow: visible;
-        transition: margin-top 160ms ease;
       }
     }
 
@@ -1038,7 +1113,7 @@
           <section class="card">
             <h2>Delivery Queue</h2>
             <div class="body">
-              <div class="toolbar">
+              <div class="toolbar queue-filters-toolbar">
                 <label>Status
                   <select id="queueStatusFilter">
                     <option value="All">All</option>
@@ -1071,12 +1146,12 @@
                     </thead>
                     <tbody id="queueBody"></tbody>
                   </table>
-                  <div class="toolbar">
+                  <div class="toolbar queue-pagination-toolbar">
                     <button id="firstPage">First</button>
                     <button id="prevPage">Previous</button>
                     <div id="pageSummary" class="muted"></div>
                     <label>Jump to
-                      <input id="queuePageInput" type="number" min="1" value="1" style="width:84px;">
+                      <input id="queuePageInput" type="number" min="1" value="1">
                     </label>
                     <button id="jumpPage">Go</button>
                     <button id="nextPage">Next</button>
@@ -1084,10 +1159,12 @@
                   </div>
                   <div class="error" id="queueError"></div>
                 </div>
+                <div class="delivery-grid-anchor">
                 <div class="details-panel">
                   <h3>Selected Work Item</h3>
                   <div class="hint">Choose Details on a work item to inspect attempt history.</div>
                   <div id="queueDetails" class="muted">No work item selected.</div>
+                </div>
                 </div>
               </div>
             </div>
@@ -1312,6 +1389,7 @@
 
   <script>
     const el = (id) => document.getElementById(id);
+    let queueDetailsAlignFramePending = false;
     const state = {
       rules: [],
       folderDestinations: [],
@@ -2300,41 +2378,43 @@
     }
 
     function alignQueueDetailsPanelToSelection() {
-      const detailsPanel = document.querySelector('[data-view="delivery"] .details-panel');
+      const anchor = document.querySelector('[data-view="delivery"] .delivery-grid-anchor');
+      const detailsPanel = anchor ? anchor.querySelector('.details-panel') : null;
       if (!detailsPanel) {
         return;
       }
 
-      detailsPanel.style.marginTop = '0px';
+      detailsPanel.style.position = '';
+      detailsPanel.style.top = '';
+      detailsPanel.style.left = '';
+      detailsPanel.style.width = '';
+      detailsPanel.style.maxHeight = '';
 
       if (!window.matchMedia('(min-width: 1000px)').matches) {
+        anchor.style.position = '';
+        anchor.style.top = '';
+        anchor.style.maxHeight = '';
+        anchor.style.overflow = '';
         return;
       }
 
-      const selectedRow = document.querySelector('#queueBody .queue-row.selected');
-      if (!selectedRow) {
-        return;
-      }
+      anchor.style.position = 'sticky';
+      anchor.style.top = 'calc(var(--header-offset) + 12px)';
+      anchor.style.maxHeight = 'calc(100vh - var(--header-offset) - 24px)';
+      anchor.style.overflow = 'auto';
 
-      const layoutGrid = selectedRow.closest('.grid-2');
-      const listColumn = layoutGrid ? layoutGrid.querySelector(':scope > div:first-child') : null;
-      if (!layoutGrid || !listColumn) {
-        return;
-      }
+      anchor.scrollTop = 0;
+      detailsPanel.scrollTop = 0;
+    }
 
-      const selectedRect = selectedRow.getBoundingClientRect();
-      const selectedTop = selectedRect.top + window.scrollY;
-      const selectedCenter = selectedTop + (selectedRect.height / 2);
-      const panelTopAtZero = detailsPanel.getBoundingClientRect().top + window.scrollY;
-      const panelHeight = detailsPanel.getBoundingClientRect().height;
-      const desiredTop = selectedCenter - (panelHeight / 2);
-      const requestedShift = Math.max(0, desiredTop - panelTopAtZero);
+    function scheduleQueueDetailsAlignment(scrollSelectedRow = false) {
+      requestAnimationFrame(() => {
+        alignQueueDetailsPanelToSelection();
 
-      const listBottom = listColumn.getBoundingClientRect().bottom + window.scrollY;
-      const maxShift = Math.max(0, listBottom - panelHeight - panelTopAtZero - 8);
-      const shift = Math.min(requestedShift, maxShift);
-
-      detailsPanel.style.marginTop = shift + 'px';
+        if (scrollSelectedRow && !window.matchMedia('(min-width: 1000px)').matches) {
+          ensureQueueDetailsVisible();
+        }
+      });
     }
 
     function ensureSelectedQueueRowVisible(preferAlignedPosition = false) {
@@ -2392,17 +2472,12 @@
           actionHtml +
           '<div style="margin-top:10px;">' + attemptHtml + '</div>';
 
-        requestAnimationFrame(() => alignQueueDetailsPanelToSelection());
-
-        if (scrollToPanel) {
-          requestAnimationFrame(() => {
-            if (window.matchMedia('(min-width: 1000px)').matches) {
-              ensureSelectedQueueRowVisible(true);
-            } else {
-              ensureQueueDetailsVisible();
-            }
-          });
+        const detailsPanel = document.querySelector('[data-view="delivery"] .details-panel');
+        if (detailsPanel) {
+          detailsPanel.scrollTop = 0;
         }
+
+        scheduleQueueDetailsAlignment(scrollToPanel);
       } catch (err) {
         el('queueError').textContent = 'Failed loading details: ' + err.message;
       }
@@ -2415,7 +2490,7 @@
     }
 
     window.addEventListener('resize', () => {
-      requestAnimationFrame(() => alignQueueDetailsPanelToSelection());
+      scheduleQueueDetailsAlignment(false);
     });
 
     async function retryItem(id) {
