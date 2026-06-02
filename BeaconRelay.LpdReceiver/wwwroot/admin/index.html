@@ -40,6 +40,140 @@
       z-index: 25;
       width: 100%;
     }
+      .label-help-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        max-width: 100%;
+      }
+      .label-help-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 1px solid #9ab6de;
+        background: #eef4ff;
+        color: #234f92;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .label-help-icon:hover {
+        background: #dce9ff;
+        border-color: #7ea2d8;
+      }
+      .label-help-icon:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(15, 92, 192, 0.18);
+        border-color: var(--accent);
+      }
+      .label-help-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: min(360px, 76vw);
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #b9d0ef;
+        background: #f8fbff;
+        color: #1f3552;
+        box-shadow: 0 10px 28px rgba(18, 52, 95, 0.18);
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.45;
+        z-index: 40;
+        display: none;
+        text-transform: none;
+        letter-spacing: normal;
+        white-space: normal;
+      }
+      .label-help-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(94, 121, 158, 0.18);
+      }
+      .label-help-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #5c718e;
+        font-weight: 800;
+      }
+      .label-help-role {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 74px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid #b9d0ef;
+        background: #eef5ff;
+        color: #355d93;
+      }
+      .label-help-body {
+        display: block;
+      }
+      .label-help-popover.open {
+        display: block;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-icon {
+        border-color: #79c9ad;
+        background: #eaf9f2;
+        color: #1f6e52;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-popover {
+        border-color: #9ed7c2;
+        background: #f4fdf8;
+        color: #184f3b;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-role {
+        border-color: #79c9ad;
+        background: #eaf9f2;
+        color: #1f6e52;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-icon {
+        border-color: #8cc7d9;
+        background: #ebf8fc;
+        color: #2f6578;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-popover {
+        border-color: #a9d9e6;
+        background: #f5fcff;
+        color: #214a59;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-role {
+        border-color: #8cc7d9;
+        background: #ebf8fc;
+        color: #2f6578;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-icon {
+        border-color: #b6c0cc;
+        background: #f4f6f9;
+        color: #526172;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-popover {
+        border-color: #c8d1db;
+        background: #f9fafc;
+        color: #3f4f61;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-role {
+        border-color: #b6c0cc;
+        background: #f4f6f9;
+        color: #526172;
+      }
 
     .header-left {
       display: flex;
@@ -1202,6 +1336,48 @@
       administrators: 'Administrators'
     };
 
+    const helpTextByLabel = {
+      'Rule Name': 'Used as the unique rule identifier in configuration and audit records. Needed so operators can safely edit and troubleshoot the correct rule.',
+      'Priority': 'Controls evaluation order. Needed so higher-priority rules are processed before lower-priority rules.',
+      'Queue Match Type': 'Defines how queue matching is interpreted (Exact, Wildcard, Regex). Needed to parse the match value correctly.',
+      'Queue Match Value': 'The queue pattern to match incoming work. Needed to decide which items this rule applies to.',
+      'Match Operator': 'Defines how multiple rule conditions combine. Needed to enforce AND/OR behavior consistently.',
+      'Status': 'Turns the selected configuration on or off. Needed for safe staged rollout without deleting settings.',
+      'Rule Highlight Color': 'Visual marker for this rule in the UI. Needed to improve scanning and reduce operator mistakes.',
+      'Rule': 'Associates the destination or setting to a specific processing rule. Needed for correct routing behavior.',
+      'Destination Order': 'Execution order for destinations under the same rule. Needed when multiple destinations are configured.',
+      'Root Folder': 'Base output folder for routed files. Needed to store generated files in the intended location.',
+      'Subfolder Pattern Type': 'How subfolder templates are interpreted. Needed to apply date/token formatting correctly.',
+      'Subfolder Pattern': 'Template used to build subfolder paths. Needed to organize output by date or token.',
+      'Duplicate Policy': 'How filename collisions are handled. Needed to prevent overwrite-related loss or delivery failures.',
+      'Unique Name Mode': 'Strategy for generating unique filenames. Needed when duplicate handling requires conflict-free names.',
+      'Unique Affix': 'Optional text used in generated unique names. Needed for readability or naming policy alignment.',
+      'Retry Policy': 'Selects retry timing behavior after failures. Needed so transient errors can recover automatically.',
+      'Retry On Failure': 'Determines whether failed deliveries are queued for retry. Needed to choose resilience vs fail-fast behavior.',
+      'Host': 'Remote destination hostname or IP. Needed to open outbound forwarding connections.',
+      'Port': 'Remote destination service port. Needed to reach the correct listener.',
+      'Outbound Queue Name': 'Queue identifier sent to the remote receiver. Needed so forwarded jobs are routed correctly downstream.',
+      'Compression': 'Whether payload compression is used before forwarding. Needed to balance bandwidth and compatibility.',
+      'Payload Mode': 'Chooses which payload representation is forwarded. Needed to control downstream fidelity and behavior.',
+      'Search': 'UI filter text for queue browsing. Needed only to narrow displayed results.',
+      'Page Size': 'Number of rows shown per page. Needed to balance readability and response speed.',
+      'Jump to': 'Target page number in pagination. Needed for fast navigation in large queues.',
+      'Enabled': 'Activation flag for this entity. Needed to temporarily disable behavior without deleting it.',
+      'Retention Days': 'How long data is kept before cleanup. Needed for storage control and retention compliance.',
+      'Run Interval (minutes)': 'How often retention jobs run. Needed to schedule cleanup frequency and system load.',
+      'Policy': 'Which saved purge policy you are editing. Needed so updates apply to the intended record.',
+      'Apply To': 'Dataset targeted by the purge policy. Needed to ensure cleanup affects only the intended records.',
+      'Interval Minutes': 'Recurrence for purge execution. Needed to control cleanup cadence.',
+      'Terminal Statuses CSV': 'Terminal outcomes eligible for purge, comma-separated. Needed to avoid deleting active or in-progress records.',
+      'Username': 'Administrator sign-in identity. Needed for authentication, authorization, and audit attribution.',
+      'Role': 'Permission scope for this administrator. Needed to enforce least-privilege access.',
+      'Password': 'Credential used to verify administrator identity. Needed to protect admin operations; stored as a secure hash and never shown back in plain text.',
+      'Duration': 'Requested pause window for delivery processing. Needed for controlled maintenance or incident response.',
+      'Reason (optional)': 'Optional operator note explaining why delivery was paused. Needed for audit context and team visibility.'
+    };
+
+    const adminOnlyLabels = new Set(['Username', 'Role', 'Password']);
+
     function applyMenuState() {
       const body = document.body;
       body.classList.toggle('menu-collapsed', state.isMenuCollapsed);
@@ -1245,6 +1421,8 @@
         button.hidden = !canManageAdminUsers;
         button.disabled = !canManageAdminUsers;
       });
+
+      refreshLabelHelpText();
     }
 
     function syncLayoutOffsets() {
@@ -1252,6 +1430,179 @@
       if (!header) return;
       const headerHeight = Math.ceil(header.getBoundingClientRect().height);
       document.documentElement.style.setProperty('--header-offset', headerHeight + 'px');
+    }
+
+    function extractPrimaryLabelText(label) {
+      for (const node of label.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = (node.textContent || '').trim();
+          if (text.length > 0) {
+            return { text, node };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function helpTextForLabel(labelText) {
+      const mapped = helpTextByLabel[labelText];
+      const baseText = mapped || (labelText + ' is collected to configure how Beacon Relay stores, routes, filters, or presents operational data. It is needed to execute delivery workflows reliably and to support administration visibility.');
+
+      if (state.currentRole === 'ReadOnly') {
+        return baseText + ' Current role is ReadOnly, so this value is view-only.';
+      }
+
+      if (state.currentRole === 'Settings' && adminOnlyLabels.has(labelText)) {
+        return baseText + ' Current role is Settings; only Admin users can modify administrator accounts.';
+      }
+
+      if (state.currentRole === 'Admin' && adminOnlyLabels.has(labelText)) {
+        return baseText + ' Current role is Admin, so you can create, update, and disable administrator accounts.';
+      }
+
+      if (state.currentRole === 'Settings') {
+        return baseText + ' Current role is Settings, so this field can be configured.';
+      }
+
+      if (state.currentRole === 'Admin') {
+        return baseText + ' Current role is Admin, so this field can be configured.';
+      }
+
+      return baseText;
+    }
+
+    function refreshLabelHelpText() {
+      const role = (state.currentRole || 'ReadOnly').toLowerCase();
+      const roleLabel = role === 'admin' ? 'Admin' : (role === 'settings' ? 'Settings' : 'ReadOnly');
+
+      document.querySelectorAll('.label-help-wrap').forEach(wrap => {
+        const labelText = wrap.dataset.labelText || '';
+        const popover = wrap.querySelector('.label-help-popover');
+        const roleBadge = wrap.querySelector('.label-help-role');
+        const body = wrap.querySelector('.label-help-body');
+        wrap.dataset.role = role;
+        if (roleBadge) {
+          roleBadge.textContent = roleLabel;
+        }
+        if (!labelText || !popover) {
+          return;
+        }
+
+        const message = helpTextForLabel(labelText);
+        if (body) {
+          body.textContent = message;
+        } else {
+          popover.textContent = message;
+        }
+      });
+    }
+
+    function closeAllLabelHelp(exceptWrap) {
+      document.querySelectorAll('.label-help-wrap').forEach(wrap => {
+        if (exceptWrap && wrap === exceptWrap) {
+          return;
+        }
+
+        const popover = wrap.querySelector('.label-help-popover');
+        const trigger = wrap.querySelector('.label-help-icon');
+        if (!popover || !trigger) {
+          return;
+        }
+
+        popover.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function attachLabelHelp() {
+      let nextId = 1;
+
+      document.querySelectorAll('label').forEach(label => {
+        if (label.dataset.helpReady === 'true') {
+          return;
+        }
+
+        const textInfo = extractPrimaryLabelText(label);
+        if (!textInfo) {
+          return;
+        }
+
+        const labelText = textInfo.text;
+        const textNode = textInfo.node;
+
+        textNode.textContent = '';
+
+        const wrap = document.createElement('span');
+        wrap.className = 'label-help-wrap';
+        wrap.dataset.labelText = labelText;
+
+        const title = document.createElement('span');
+        title.textContent = labelText;
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'label-help-icon';
+        trigger.textContent = '?';
+        trigger.setAttribute('aria-label', 'Help for ' + labelText);
+        trigger.setAttribute('aria-expanded', 'false');
+
+        const popover = document.createElement('span');
+        popover.className = 'label-help-popover';
+        popover.id = 'labelHelp' + nextId;
+
+        const head = document.createElement('span');
+        head.className = 'label-help-head';
+
+        const titleText = document.createElement('span');
+        titleText.className = 'label-help-title';
+        titleText.textContent = 'Field Help';
+
+        const roleBadge = document.createElement('span');
+        roleBadge.className = 'label-help-role';
+        roleBadge.textContent = 'ReadOnly';
+
+        const body = document.createElement('span');
+        body.className = 'label-help-body';
+        body.textContent = helpTextForLabel(labelText);
+
+        head.appendChild(titleText);
+        head.appendChild(roleBadge);
+        popover.appendChild(head);
+        popover.appendChild(body);
+        trigger.setAttribute('aria-controls', popover.id);
+
+        nextId += 1;
+
+        trigger.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const willOpen = !popover.classList.contains('open');
+          closeAllLabelHelp(wrap);
+          popover.classList.toggle('open', willOpen);
+          trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+
+        wrap.appendChild(title);
+        wrap.appendChild(trigger);
+        wrap.appendChild(popover);
+        label.insertBefore(wrap, label.firstChild);
+        label.dataset.helpReady = 'true';
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element) || !event.target.closest('.label-help-wrap')) {
+          closeAllLabelHelp();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if ((event.key || '').toLowerCase() === 'escape') {
+          closeAllLabelHelp();
+        }
+      });
+
+      refreshLabelHelpText();
     }
 
     function appRootPath() {
@@ -2268,6 +2619,7 @@
 
     (async function init() {
       syncLayoutOffsets();
+      attachLabelHelp();
       state.isMenuCollapsed = window.innerWidth < 980;
       applyMenuState();
       setActiveView('status');
