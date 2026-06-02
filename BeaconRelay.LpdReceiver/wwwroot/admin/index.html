@@ -612,6 +612,15 @@
       padding: 14px;
     }
 
+    @media (min-width: 1000px) {
+      .details-panel {
+        align-self: start;
+        max-height: none;
+        overflow: visible;
+        transition: margin-top 160ms ease;
+      }
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -1758,6 +1767,11 @@
       return originalRule + ' -> ' + item.destinationType + ' #' + item.destinationId;
     }
 
+    function isTerminalQueueStatus(status) {
+      const normalized = String(status || '');
+      return normalized === 'Succeeded' || normalized === 'Failed' || normalized === 'Canceled';
+    }
+
     function renderRules() {
       el('rulesBody').innerHTML = state.rules.map((rule, index) => {
         const folderCount = (rule.folderDestinations || []).length;
@@ -1817,8 +1831,9 @@
           '<td>' + item.attemptCount + '</td>' +
           '<td>' + formatLocalTime(item.nextAttemptUtc) + '</td>' +
           '<td class="actions">' +
-            '<button onclick="showDetails(\'' + item.id + '\'); return false;">Details</button>' +
+            '<button onclick="showDetails(\'' + item.id + '\', true); return false;">Details</button>' +
             (state.canManageSettings ? '<button onclick="retryItem(\'' + item.id + '\'); return false;">Retry</button>' : '') +
+            (state.canManageSettings && !isTerminalQueueStatus(item.status) ? '<button class="danger" onclick="cancelItem(\'' + item.id + '\'); return false;">Cancel</button>' : '') +
           '</td>' +
         '</tr>'
       ).join('');
@@ -2263,7 +2278,96 @@
       await loadQueue();
     }
 
-    async function showDetails(id) {
+    function ensureQueueDetailsVisible() {
+      const detailsContent = el('queueDetails');
+      if (!detailsContent) {
+        return;
+      }
+
+      const detailsPanel = detailsContent.closest('.details-panel') || detailsContent;
+      const rect = detailsPanel.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 72;
+      const topInset = headerOffset + 12;
+      const bottomInset = 24;
+      const fullyVisible = rect.top >= topInset && rect.bottom <= (window.innerHeight - bottomInset);
+
+      if (!fullyVisible) {
+        const panelTop = window.scrollY + rect.top;
+        const targetTop = Math.max(0, panelTop - topInset);
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    }
+
+    function alignQueueDetailsPanelToSelection() {
+      const detailsPanel = document.querySelector('[data-view="delivery"] .details-panel');
+      if (!detailsPanel) {
+        return;
+      }
+
+      detailsPanel.style.marginTop = '0px';
+
+      if (!window.matchMedia('(min-width: 1000px)').matches) {
+        return;
+      }
+
+      const selectedRow = document.querySelector('#queueBody .queue-row.selected');
+      if (!selectedRow) {
+        return;
+      }
+
+      const layoutGrid = selectedRow.closest('.grid-2');
+      const listColumn = layoutGrid ? layoutGrid.querySelector(':scope > div:first-child') : null;
+      if (!layoutGrid || !listColumn) {
+        return;
+      }
+
+      const selectedRect = selectedRow.getBoundingClientRect();
+      const selectedTop = selectedRect.top + window.scrollY;
+      const selectedCenter = selectedTop + (selectedRect.height / 2);
+      const panelTopAtZero = detailsPanel.getBoundingClientRect().top + window.scrollY;
+      const panelHeight = detailsPanel.getBoundingClientRect().height;
+      const desiredTop = selectedCenter - (panelHeight / 2);
+      const requestedShift = Math.max(0, desiredTop - panelTopAtZero);
+
+      const listBottom = listColumn.getBoundingClientRect().bottom + window.scrollY;
+      const maxShift = Math.max(0, listBottom - panelHeight - panelTopAtZero - 8);
+      const shift = Math.min(requestedShift, maxShift);
+
+      detailsPanel.style.marginTop = shift + 'px';
+    }
+
+    function ensureSelectedQueueRowVisible(preferAlignedPosition = false) {
+      const selectedRow = document.querySelector('.queue-row.selected');
+      if (!selectedRow) {
+        return;
+      }
+
+      const rect = selectedRow.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 72;
+      const topInset = headerOffset + 16;
+      const bottomInset = 20;
+      const rowVisible = rect.top >= topInset && rect.bottom <= (window.innerHeight - bottomInset);
+
+      const preferredTop = topInset + Math.max(96, Math.round((window.innerHeight - topInset - bottomInset) * 0.34));
+      const rowTopPage = window.scrollY + rect.top;
+      const preferredScrollTop = Math.max(0, rowTopPage - preferredTop);
+      const needsAlignment = Math.abs(window.scrollY - preferredScrollTop) > 24;
+
+      if (preferAlignedPosition && needsAlignment) {
+        window.scrollTo({ top: preferredScrollTop, behavior: 'smooth' });
+        return;
+      }
+
+      if (!rowVisible) {
+        const rowCenter = window.scrollY + rect.top + (rect.height / 2);
+        const targetTop = Math.max(0, rowCenter - ((window.innerHeight + topInset) / 2));
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    }
+
+    async function showDetails(id, scrollToPanel = false) {
       try {
         state.queueSelectedId = id;
         const item = await fetchJson('/api/delivery/work-items/' + id);
@@ -2273,12 +2377,32 @@
           : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' + attempts.map(attempt =>
               '<tr><td>' + attempt.attemptNumber + '</td><td>' + statusPill(attempt.outcome) + '</td><td>' + formatLocalTime(attempt.startedUtc) + '</td><td>' + (attempt.errorMessage || '') + '</td></tr>'
             ).join('') + '</tbody></table>';
+        const actionHtml = state.canManageSettings
+          ? '<div class="toolbar" style="margin-top:10px;">'
+              + '<button onclick="retryItem(\'' + item.id + '\'); return false;">Retry Now</button>'
+              + (!isTerminalQueueStatus(item.status) ? '<button class="danger" onclick="cancelItem(\'' + item.id + '\'); return false;">Cancel Item</button>' : '')
+            + '</div>'
+          : '';
+
         el('queueDetails').innerHTML =
           '<div><strong>Work Item:</strong> ' + item.id + '</div>' +
           '<div><strong>Status:</strong> ' + statusPill(item.status) + '</div>' +
           '<div><strong>Destination:</strong> ' + destinationSummary(item) + '</div>' +
           '<div><strong>Attempts:</strong> ' + item.attemptCount + '</div>' +
+          actionHtml +
           '<div style="margin-top:10px;">' + attemptHtml + '</div>';
+
+        requestAnimationFrame(() => alignQueueDetailsPanelToSelection());
+
+        if (scrollToPanel) {
+          requestAnimationFrame(() => {
+            if (window.matchMedia('(min-width: 1000px)').matches) {
+              ensureSelectedQueueRowVisible(true);
+            } else {
+              ensureQueueDetailsVisible();
+            }
+          });
+        }
       } catch (err) {
         el('queueError').textContent = 'Failed loading details: ' + err.message;
       }
@@ -2287,8 +2411,12 @@
     function selectQueueItem(id) {
       state.queueSelectedId = id;
       renderQueue();
-      showDetails(id);
+      showDetails(id, true);
     }
+
+    window.addEventListener('resize', () => {
+      requestAnimationFrame(() => alignQueueDetailsPanelToSelection());
+    });
 
     async function retryItem(id) {
       try {
@@ -2297,6 +2425,24 @@
         await showDetails(id);
       } catch (err) {
         el('queueError').textContent = 'Retry failed: ' + err.message;
+      }
+    }
+
+    async function cancelItem(id) {
+      if (!state.canManageSettings) {
+        return;
+      }
+
+      if (!confirm('Cancel this delivery queue item?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/delivery/work-items/' + id + '/cancel', { method: 'POST' });
+        await loadQueue();
+        await showDetails(id);
+      } catch (err) {
+        el('queueError').textContent = 'Cancel failed: ' + err.message;
       }
     }
 
@@ -2495,6 +2641,7 @@
     window.showDetails = showDetails;
     window.selectQueueItem = selectQueueItem;
     window.retryItem = retryItem;
+    window.cancelItem = cancelItem;
     window.editPurgePolicy = editPurgePolicy;
     window.editAdminUser = editAdminUser;
     window.deleteAdminUser = deleteAdminUser;
