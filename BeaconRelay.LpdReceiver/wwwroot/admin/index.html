@@ -1811,8 +1811,9 @@
     }
 
     function setRuleOptions(selectId) {
+      const placeholder = '<option value="">Choose Rule</option>';
       const html = state.rules.map(rule => '<option value="' + rule.id + '">' + rule.name + '</option>').join('');
-      el(selectId).innerHTML = html || '<option value="">No rules</option>';
+      el(selectId).innerHTML = placeholder + html;
     }
 
     function setRetryPolicyOptions(selectId) {
@@ -2189,6 +2190,7 @@
 
     function resetFolderForm() {
       state.editingFolderId = null;
+      el('folderRuleId').value = '';
       el('folderOrder').value = 1;
       el('folderRoot').value = 'data/routed';
       el('folderPatternType').value = 'DotNetDateFormat';
@@ -2203,6 +2205,7 @@
 
     function resetForwardForm() {
       state.editingForwardId = null;
+      el('forwardRuleId').value = '';
       el('forwardOrder').value = 1;
       el('forwardHost').value = '127.0.0.1';
       el('forwardPort').value = 515;
@@ -2268,8 +2271,14 @@
 
     async function saveFolder() {
       try {
+        const selectedRuleId = Number(el('folderRuleId').value);
+        if (!selectedRuleId) {
+          el('folderError').textContent = 'Please choose a rule before saving a folder destination.';
+          return;
+        }
+
         const request = {
-          ruleId: Number(el('folderRuleId').value),
+          ruleId: selectedRuleId,
           isEnabled: el('folderEnabled').value === 'true',
           destinationOrder: Number(el('folderOrder').value),
           rootFolder: el('folderRoot').value,
@@ -2297,8 +2306,14 @@
 
     async function saveForward() {
       try {
+        const selectedRuleId = Number(el('forwardRuleId').value);
+        if (!selectedRuleId) {
+          el('forwardError').textContent = 'Please choose a rule before saving an LPD forward destination.';
+          return;
+        }
+
         const request = {
-          ruleId: Number(el('forwardRuleId').value),
+          ruleId: selectedRuleId,
           isEnabled: el('forwardEnabled').value === 'true',
           destinationOrder: Number(el('forwardOrder').value),
           host: el('forwardHost').value,
