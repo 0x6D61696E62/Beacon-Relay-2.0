@@ -465,13 +465,14 @@
       min-width: 150px;
     }
 
-    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(1),
-    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(3) {
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-status,
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-page-size,
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-date {
       flex: 0 0 170px;
       min-width: 170px;
     }
 
-    .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(2) {
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-search {
       flex: 1 1 340px;
       min-width: 260px;
     }
@@ -481,13 +482,14 @@
     }
 
     @media (max-width: 1080px) {
-      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(1),
-      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(3) {
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-status,
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-page-size,
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-date {
         flex: 1 1 180px;
         min-width: 160px;
       }
 
-      .view-section[data-view="delivery"] .queue-filters-toolbar > label:nth-child(2) {
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-search {
         flex: 1 1 280px;
         min-width: 220px;
       }
@@ -1375,7 +1377,7 @@
             <h2>Delivery Queue</h2>
             <div class="body">
               <div class="toolbar queue-filters-toolbar">
-                <label>Status
+                <label class="queue-filter-status">Status
                   <select id="queueStatusFilter">
                     <option value="All">All</option>
                     <option>Pending</option>
@@ -1386,10 +1388,16 @@
                     <option>Canceled</option>
                   </select>
                 </label>
-                <label>Search
+                <label class="queue-filter-search">Search
                   <input id="queueSearch" placeholder="queue, file, destination, error">
                 </label>
-                <label>Page Size
+                <label class="queue-filter-date">Start Date
+                  <input id="queueStartDate" type="date">
+                </label>
+                <label class="queue-filter-date">End Date
+                  <input id="queueEndDate" type="date">
+                </label>
+                <label class="queue-filter-page-size">Page Size
                   <select id="queuePageSize">
                     <option>10</option>
                     <option selected>25</option>
@@ -2217,6 +2225,28 @@
       }
 
       return timestamp.toLocaleString();
+    }
+
+    function dateInputValueForToday() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function ensureQueueDateRangeDefaults() {
+      const startInput = el('queueStartDate');
+      const endInput = el('queueEndDate');
+      if (!startInput || !endInput) {
+        return;
+      }
+
+      if (!startInput.value && !endInput.value) {
+        const today = dateInputValueForToday();
+        startInput.value = today;
+        endInput.value = today;
+      }
     }
 
     function setRuleOptions(selectId) {
@@ -3413,12 +3443,20 @@
     async function loadQueue() {
       try {
         el('queueError').textContent = '';
+        ensureQueueDateRangeDefaults();
         const status = el('queueStatusFilter').value;
         const search = el('queueSearch').value.trim();
+        const startDate = el('queueStartDate').value;
+        const endDate = el('queueEndDate').value;
+        if (startDate && endDate && startDate > endDate) {
+          throw new Error('Start Date cannot be after End Date.');
+        }
         const pageSize = Number(el('queuePageSize').value);
         const query = new URLSearchParams({ page: String(state.queuePage), pageSize: String(pageSize) });
         if (status && status !== 'All') query.set('status', status);
         if (search) query.set('search', search);
+        if (startDate) query.set('startDate', startDate);
+        if (endDate) query.set('endDate', endDate);
 
         const result = await fetchJson('/api/delivery/work-items?' + query.toString());
         if (!result || typeof result !== 'object') {
@@ -3938,6 +3976,8 @@
     });
     el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueStartDate').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueEndDate').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queuePageSize').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('firstPage').addEventListener('click', async () => { await goToQueuePage(1); });
     el('prevPage').addEventListener('click', async () => { if (state.queuePage > 1) { state.queuePage -= 1; await loadQueue(); } });
@@ -3966,6 +4006,7 @@
       state.currentUsername = 'anonymous';
       initializeStatusLayoutForCurrentUser();
       applyMenuState();
+      ensureQueueDateRangeDefaults();
       setActiveView('status');
       applyAccessControls();
       await loadAuthStatus();

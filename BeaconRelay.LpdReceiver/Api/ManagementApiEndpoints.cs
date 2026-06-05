@@ -491,7 +491,7 @@ public static class ManagementApiEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> GetDeliveryWorkItemsAsync(AppDbContext db, string? status, string? search, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default)
+    private static async Task<IResult> GetDeliveryWorkItemsAsync(AppDbContext db, string? status, string? search, string? startDate, string? endDate, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
@@ -518,6 +518,43 @@ public static class ManagementApiEndpoints
                 || (x.ReceivedFile != null && x.ReceivedFile.OriginalFileName != null && x.ReceivedFile.OriginalFileName.Contains(term)));
         }
 
+        if (!string.IsNullOrWhiteSpace(startDate) || !string.IsNullOrWhiteSpace(endDate))
+        {
+            if (!TryParseDateOnlyFromQuery(startDate, out var parsedStartDate, out var startParseError))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(startDate)] = [startParseError]
+                });
+            }
+
+            if (!TryParseDateOnlyFromQuery(endDate, out var parsedEndDate, out var endParseError))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(endDate)] = [endParseError]
+                });
+            }
+
+            if (parsedStartDate is not null && parsedEndDate is not null && parsedStartDate > parsedEndDate)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(startDate)] = ["Start date cannot be later than end date."],
+                    [nameof(endDate)] = ["End date cannot be earlier than start date."]
+                });
+            }
+
+            // If only one side is supplied, treat it as a single-day filter.
+            var effectiveStartDate = parsedStartDate ?? parsedEndDate!.Value;
+            var effectiveEndDate = parsedEndDate ?? parsedStartDate!.Value;
+
+            var rangeStartUtc = DateTime.SpecifyKind(effectiveStartDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Local).ToUniversalTime();
+            var rangeEndUtcExclusive = DateTime.SpecifyKind(effectiveEndDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Local).ToUniversalTime();
+
+            query = query.Where(x => x.CreatedUtc >= rangeStartUtc && x.CreatedUtc < rangeEndUtcExclusive);
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         page = Math.Min(page, totalPages);
@@ -531,6 +568,26 @@ public static class ManagementApiEndpoints
         var result = new DeliveryWorkItemQueryResult(items, page, pageSize, totalCount, totalPages);
 
         return Results.Ok(result);
+    }
+
+    private static bool TryParseDateOnlyFromQuery(string? value, out DateOnly? parsedDate, out string error)
+    {
+        parsedDate = null;
+        error = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        if (!DateOnly.TryParseExact(value.Trim(), "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed))
+        {
+            error = "Date must use yyyy-MM-dd format.";
+            return false;
+        }
+
+        parsedDate = parsed;
+        return true;
     }
 
     private static async Task<IResult> GetDeliveryWorkItemByIdAsync(Guid id, AppDbContext db, CancellationToken cancellationToken)
