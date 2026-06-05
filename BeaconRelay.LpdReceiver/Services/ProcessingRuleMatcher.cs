@@ -13,6 +13,7 @@ public sealed class ProcessingRuleMatcher(AppDbContext dbContext)
     {
         var rules = await dbContext.ProcessingRules
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(x => x.IsEnabled)
             .Include(x => x.VirtualPrinter)
             .Include(x => x.FolderDestinations.Where(d => d.IsEnabled))

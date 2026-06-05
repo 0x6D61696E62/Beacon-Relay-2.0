@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using SQLitePCL;
 
 Batteries_V2.Init();
@@ -66,6 +67,7 @@ if (!string.IsNullOrWhiteSpace(databaseOptions.Password))
     normalizedConnectionString = connectionBuilder.ToString();
 }
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(normalizedConnectionString));
+builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<ListenerState>();
 builder.Services.AddSingleton<DeliveryPauseState>();
@@ -80,6 +82,7 @@ builder.Services.AddScoped<DeliveryWorkItemEnqueuer>();
 builder.Services.AddScoped<ReceivedFileProcessor>();
 
 builder.Services.AddHostedService<LpdListenerService>();
+builder.Services.AddHostedService<ListenerAlertService>();
 builder.Services.AddHostedService<RetentionService>();
 builder.Services.AddHostedService<DeliveryDispatcherService>();
 
@@ -93,6 +96,7 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    LogEfQueryOptions(scope.ServiceProvider, db);
     var retentionDefaults = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RetentionOptions>>().Value;
     if (db.Database.IsRelational())
     {
@@ -137,6 +141,24 @@ await using (var scope = app.Services.CreateAsyncScope())
         await db.SaveChangesAsync();
     }
 
+    if (!await db.AlertSettings.AnyAsync(x => x.Id == 1))
+    {
+        db.AlertSettings.Add(new AlertSettingsRecord
+        {
+            Id = 1,
+            MonitorEnabled = false,
+            MonitorIntervalSeconds = 60,
+            EmailEnabled = false,
+            EmailSmtpPort = 587,
+            EmailUseSsl = true,
+            ListenerDownEmailCooldownMinutes = 30,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync();
+    }
+
     // Restore delivery pause state from DB so a restart does not silently resume paused delivery
     var pauseRecord = await db.DeliveryPauseState.FindAsync(1);
     if (pauseRecord is { IsPaused: true })
@@ -144,6 +166,35 @@ await using (var scope = app.Services.CreateAsyncScope())
         var pauseState = app.Services.GetRequiredService<DeliveryPauseState>();
         pauseState.Pause(pauseRecord.ResumeAtUtc, pauseRecord.Reason);
     }
+}
+
+static void LogEfQueryOptions(IServiceProvider serviceProvider, AppDbContext db)
+{
+    var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("StartupDiagnostics");
+    var options = db.GetService<IDbContextOptions>();
+    var relational = options.Extensions.OfType<RelationalOptionsExtension>().FirstOrDefault();
+
+    var splitBehavior = relational?.QuerySplittingBehavior switch
+    {
+        QuerySplittingBehavior.SplitQuery => nameof(QuerySplittingBehavior.SplitQuery),
+        QuerySplittingBehavior.SingleQuery => nameof(QuerySplittingBehavior.SingleQuery),
+        _ => "ProviderDefault(SingleQuery unless overridden)"
+    };
+
+    var splitBehaviorSource = relational?.QuerySplittingBehavior is null
+        ? "ProviderDefault"
+        : "ExplicitConfiguration";
+
+    logger.LogInformation(
+        "EF query options active: provider={Provider}, defaultQuerySplittingBehavior={QuerySplittingBehavior}, queryTrackingBehavior={TrackingBehavior}",
+        db.Database.ProviderName,
+        splitBehavior,
+        db.ChangeTracker.QueryTrackingBehavior);
+
+    logger.LogInformation(
+        "EF query splitting source: source={Source}, configuredValue={ConfiguredValue}",
+        splitBehaviorSource,
+        splitBehavior);
 }
 
 var effectiveHealthOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthEndpointOptions>>().Value;

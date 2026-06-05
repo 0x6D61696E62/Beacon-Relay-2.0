@@ -752,6 +752,109 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
 
+    .status-layout-toolbar {
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .status-layout-toolbar .hint {
+      margin: 0;
+    }
+
+    .status-layout-locked .panel-drag-handle,
+    .status-layout-locked .panel-resize-handle {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-panel {
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-panel h2 {
+      padding-right: 118px;
+      user-select: none;
+    }
+
+    .status-panel .body {
+      flex: 1 1 auto;
+      overflow: auto;
+    }
+
+    .status-panel.dragging {
+      outline: 2px dashed #5b87c4;
+      outline-offset: 1px;
+      box-shadow: 0 0 0 4px rgba(91, 135, 196, 0.16);
+    }
+
+    .panel-controls {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 3;
+    }
+
+    .panel-drag-handle {
+      border-radius: 8px;
+      border: 1px solid #c5d6ed;
+      background: #edf4ff;
+      color: #27476f;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .panel-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .panel-resize-handle {
+      position: absolute;
+      right: 7px;
+      bottom: 7px;
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      border: 1px solid #b7cae6;
+      background:
+        linear-gradient(135deg, transparent 0%, transparent 44%, #8da8cd 46%, #8da8cd 54%, transparent 56%, transparent 100%),
+        #eef3fc;
+      cursor: nwse-resize;
+      z-index: 4;
+    }
+
+    @media (min-width: 1000px) {
+      .status-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-auto-rows: 88px;
+      }
+
+      .status-grid .card.card-wide {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 999px) {
+      .status-panel {
+        min-height: 0;
+      }
+
+      .status-panel .panel-controls,
+      .status-panel .panel-resize-handle {
+        display: none;
+      }
+    }
+
     .status-grid .card.card-wide {
       grid-column: 1 / -1;
     }
@@ -836,6 +939,129 @@
     }
 
     .pause-row label { flex: 1 1 160px; }
+
+    .topology-summary {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      margin-bottom: 12px;
+    }
+
+    .topology-summary .stat-box {
+      text-align: left;
+      padding: 12px 14px;
+    }
+
+    .topology-summary .stat-box .count {
+      font-size: 1.45rem;
+    }
+
+    .topology-rule-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .topology-rule-card {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      border-left-width: 6px;
+      background: #ffffff;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .topology-rule-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(150, 171, 200, 0.22);
+      background: linear-gradient(90deg, rgba(246, 250, 255, 0.96) 0%, rgba(240, 250, 247, 0.92) 100%);
+    }
+
+    .topology-rule-title {
+      font-size: 0.99rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topology-rule-meta {
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .topology-children {
+      padding: 11px 12px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .topology-item {
+      border-radius: 10px;
+      border: 1px solid #d8e3f1;
+      border-left-width: 4px;
+      background: #f9fcff;
+      padding: 9px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topology-item-id {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #4f6480;
+      border-radius: 999px;
+      border: 1px solid #c8d8ec;
+      padding: 2px 8px;
+      background: #edf4ff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .topology-item-name {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #20324a;
+      word-break: break-word;
+    }
+
+    .topology-item-empty {
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      padding: 4px 2px;
+      font-weight: 600;
+    }
+
+    .jump-toolbar {
+      margin-bottom: 12px;
+      align-items: end;
+    }
+
+    .jump-toolbar > label {
+      flex: 1 1 380px;
+      margin-bottom: 0;
+    }
+
+    .jump-toolbar > button {
+      flex: 0 0 auto;
+    }
+
+    .topology-search {
+      margin-bottom: 12px;
+    }
+
+    .topology-search input {
+      max-width: 520px;
+    }
   </style>
 </head>
 <body>
@@ -887,9 +1113,17 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"></path><path d="M13 7l5 5-5 5"></path></svg>
             <span class="nav-label">LPD Forwarding</span>
           </button>
+          <button data-view-target="topology">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M8 6h8"></path><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M8 18h8"></path></svg>
+            <span class="nav-label">Rule Navigator</span>
+          </button>
           <button data-view-target="delivery">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h3l4 4v3h-7z"></path><circle cx="8" cy="19" r="1"></circle><circle cx="18" cy="19" r="1"></circle></svg>
             <span class="nav-label">Delivery Queue</span>
+          </button>
+          <button data-view-target="alerts" data-access="admin">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"></path><path d="M5.6 6.6l2.1 2.1"></path><path d="M3 12h3"></path><path d="M5.6 17.4l2.1-2.1"></path><path d="M12 18v3"></path><path d="M18.4 17.4l-2.1-2.1"></path><path d="M21 12h-3"></path><path d="M18.4 6.6l-2.1 2.1"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <span class="nav-label">Alerts</span>
           </button>
           <button data-view-target="administrators" data-access="admin">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3 19c0-3.2 2.6-5.8 5.8-5.8h0.4"></path><circle cx="17" cy="10" r="2.5"></circle><path d="M14.5 19.5c0-2.6 2.1-4.7 4.7-4.7h0.3"></path></svg>
@@ -1109,6 +1343,33 @@
           </section>
         </section>
 
+        <section class="view-section" data-view="topology">
+          <section class="card">
+            <h2>Rules, Folders, and LPD Map</h2>
+            <div class="body">
+              <div class="hint">Each rule is color-coded and grouped with its folder and LPD targets. Pick any list item and jump directly to its settings editor.</div>
+              <div class="topology-search">
+                <label>Search Rule / Folder / LPD
+                  <input id="topologySearch" placeholder="Try: lab-printer, data/routed, 10.0.0.15, remote-queue">
+                </label>
+              </div>
+              <div class="topology-summary" id="topologySummary">
+                <div class="stat-box dim"><div class="count">0</div><div class="label">Rules</div></div>
+                <div class="stat-box dim"><div class="count">0</div><div class="label">Folder Destinations</div></div>
+                <div class="stat-box dim"><div class="count">0</div><div class="label">LPD Destinations</div></div>
+              </div>
+              <div class="toolbar jump-toolbar">
+                <label>Select List Item
+                  <select id="jumpItemSelect"></select>
+                </label>
+                <button class="primary" id="jumpToItem">Jump To Settings</button>
+              </div>
+              <div class="error" id="topologyError"></div>
+              <div id="topologyRuleList" class="topology-rule-list"></div>
+            </div>
+          </section>
+        </section>
+
         <section class="view-section" data-view="delivery">
           <section class="card">
             <h2>Delivery Queue</h2>
@@ -1245,6 +1506,88 @@
           </section>
         </section>
 
+        <section class="view-section" data-view="alerts" data-access="admin">
+          <section class="card">
+            <h2>Alert Settings</h2>
+            <div class="body">
+              <div class="hint">Configure CRON monitor messages and listener-down email alerts. These settings are editable by Admin users only.</div>
+
+              <h3 style="margin: 10px 0 8px; font-size:0.95rem;">CRON Monitor</h3>
+              <div class="row">
+                <label>Monitor Enabled
+                  <select id="alertMonitorEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Monitor Interval Seconds
+                  <input id="alertMonitorInterval" type="number" min="10" value="60">
+                </label>
+              </div>
+              <div class="row">
+                <label>Monitor URL
+                  <input id="alertMonitorUrl" placeholder="https://your-monitor/ping">
+                </label>
+              </div>
+
+              <h3 style="margin: 14px 0 8px; font-size:0.95rem;">Email Alert</h3>
+              <div class="row-3">
+                <label>Email Enabled
+                  <select id="alertEmailEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>SMTP Host
+                  <input id="alertEmailSmtpHost" placeholder="smtp.example.com">
+                </label>
+                <label>SMTP Port
+                  <input id="alertEmailSmtpPort" type="number" min="1" max="65535" value="587">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Use SSL
+                  <select id="alertEmailUseSsl">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </label>
+                <label>SMTP Username
+                  <input id="alertEmailUsername" placeholder="smtp-user">
+                </label>
+                <label>SMTP Password
+                  <input id="alertEmailPassword" type="password" placeholder="Leave blank to keep existing">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Email From
+                  <input id="alertEmailFrom" placeholder="noreply@example.com">
+                </label>
+                <label>Email To (comma-separated)
+                  <input id="alertEmailTo" placeholder="ops@example.com, admin@example.com">
+                </label>
+                <label>Listener Down Email Cooldown Minutes
+                  <input id="alertEmailCooldownMinutes" type="number" min="1" value="30">
+                </label>
+              </div>
+              <div class="row">
+                <label>Clear Stored SMTP Password
+                  <select id="alertClearEmailPassword">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="toolbar">
+                <button class="primary" id="saveAlertSettings">Save Alert Settings</button>
+                <button class="refresh" id="refreshAlertSettings">Refresh</button>
+              </div>
+              <div class="error" id="alertError"></div>
+            </div>
+          </section>
+        </section>
+
         <section class="view-section" data-view="administrators" data-access="admin">
           <section class="card">
             <h2>Administrators</h2>
@@ -1291,10 +1634,15 @@
 
         <!-- ── Status Page ───────────────────────────────────────── -->
         <section class="view-section active" data-view="status">
+          <div class="toolbar status-layout-toolbar">
+            <button id="toggleStatusLayoutLock" class="secondary">Lock Layout</button>
+            <button id="resetStatusLayout">Reset Panel Layout</button>
+            <div class="hint">Desktop: drag panels by Move and resize using the bottom-right grip. Layout is saved per user.</div>
+          </div>
           <div class="status-grid">
 
             <!-- Dispatcher State + Pause Controls -->
-            <section class="card">
+            <section class="card status-panel" data-panel-id="dispatcher">
               <h2>Delivery Dispatcher</h2>
               <div class="body">
                 <div id="dispatcherBadge" class="dispatcher-badge running">
@@ -1333,7 +1681,7 @@
             </section>
 
             <!-- Queue Statistics -->
-            <section class="card">
+            <section class="card status-panel" data-panel-id="queueStats">
               <h2>Queue Statistics</h2>
               <div class="body">
                 <div class="stat-strip" id="queueStatStrip">
@@ -1351,7 +1699,7 @@
               </div>
             </section>
 
-            <section class="card card-wide">
+            <section class="card card-wide status-panel" data-panel-id="topRules">
               <h2>Top Rules By Destinations</h2>
               <div class="body">
                 <div class="hint">Top 10 rules with the highest total configured destinations and delivered reports.</div>
@@ -1369,7 +1717,7 @@
             </section>
 
             <!-- LPD Listener -->
-            <section class="card">
+            <section class="card status-panel" data-panel-id="listener">
               <h2>LPD Listener</h2>
               <div class="body">
                 <div id="listenerBadge" class="dispatcher-badge running">
@@ -1408,10 +1756,27 @@
       queueSelectedId: null,
       isMenuCollapsed: false,
       currentRole: 'ReadOnly',
+      currentUsername: null,
+      sessionMinutes: 480,
+      sessionCheckTimerId: null,
+      inactivityTimerId: null,
+      sessionGuardsAttached: false,
+      alerts: null,
       canManageSettings: false,
       canManageAdminUsers: false,
-      adminUsers: []
+      adminUsers: [],
+      statusLayout: null,
+      statusLayoutLocked: false
     };
+
+    const statusLayoutColumns = 12;
+    const statusLayoutDefaults = {
+      dispatcher: { x: 1, y: 1, w: 6, h: 5 },
+      queueStats: { x: 7, y: 1, w: 6, h: 4 },
+      listener: { x: 7, y: 5, w: 6, h: 2 },
+      topRules: { x: 1, y: 6, w: 12, h: 5 }
+    };
+    let statusLayoutInteraction = null;
 
     const viewLabels = {
       status: 'System Status',
@@ -1419,7 +1784,9 @@
       rules: 'Rules and Matching',
       folder: 'Folder Routing',
       lpd: 'LPD Forwarding',
+      topology: 'Rule Navigator',
       delivery: 'Delivery Queue',
+      alerts: 'Alerts',
       administrators: 'Administrators'
     };
 
@@ -1460,7 +1827,20 @@
       'Role': 'Permission scope for this administrator. Needed to enforce least-privilege access.',
       'Password': 'Credential used to verify administrator identity. Needed to protect admin operations; stored as a secure hash and never shown back in plain text.',
       'Duration': 'Requested pause window for delivery processing. Needed for controlled maintenance or incident response.',
-      'Reason (optional)': 'Optional operator note explaining why delivery was paused. Needed for audit context and team visibility.'
+      'Reason (optional)': 'Optional operator note explaining why delivery was paused. Needed for audit context and team visibility.',
+      'Monitor Enabled': 'Turns CRON monitor heartbeat messaging on or off while the listener is healthy.',
+      'Monitor Interval Seconds': 'How often monitor heartbeat messages are sent while listening.',
+      'Monitor URL': 'Target endpoint that receives periodic monitor heartbeats.',
+      'Email Enabled': 'Turns listener-down email alerts on or off.',
+      'SMTP Host': 'SMTP server hostname used for sending alert emails.',
+      'SMTP Port': 'SMTP server port for outbound alert email delivery.',
+      'Use SSL': 'Controls whether SMTP transport uses SSL/TLS.',
+      'SMTP Username': 'Optional SMTP account username for authenticated email sending.',
+      'SMTP Password': 'Optional SMTP account password used with the SMTP username.',
+      'Email From': 'Sender address used in listener-down alert emails.',
+      'Email To (comma-separated)': 'One or more recipient email addresses for listener-down alerts.',
+      'Listener Down Email Cooldown Minutes': 'Minimum minutes between repeated listener-down emails while the listener remains unavailable.',
+      'Clear Stored SMTP Password': 'When set to Yes, removes the currently stored SMTP password on save.'
     };
 
     const adminOnlyLabels = new Set(['Username', 'Role', 'Password']);
@@ -1504,6 +1884,12 @@
       });
 
       [el('saveAdminUser'), el('resetAdminUser'), el('refreshAdminUsers')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageAdminUsers;
+        button.disabled = !canManageAdminUsers;
+      });
+
+      [el('saveAlertSettings'), el('refreshAlertSettings')].forEach(button => {
         if (!button) return;
         button.hidden = !canManageAdminUsers;
         button.disabled = !canManageAdminUsers;
@@ -1718,9 +2104,32 @@
       return root ? (root + url) : url;
     }
 
+    function loginUrlWithReturnPath() {
+      const currentPath = (window.location.pathname || '') + (window.location.search || '');
+      return resolveAppUrl('/login.html?returnUrl=' + encodeURIComponent(currentPath));
+    }
+
+    async function forceLogoutAndRedirect() {
+      clearSessionGuards();
+      try {
+        await fetch(resolveAppUrl('/auth/logout'), { method: 'POST', credentials: 'same-origin' });
+      } catch (_) {
+        // Ignore logout API failures; continue redirect.
+      }
+
+      window.location.href = loginUrlWithReturnPath();
+    }
+
     async function fetchJson(url, options) {
       const response = await fetch(resolveAppUrl(url), { credentials: 'same-origin', ...options });
       let payload = null;
+
+      if (response.status === 401) {
+        await forceLogoutAndRedirect();
+        const authError = new Error('Session expired. Please sign in again.');
+        authError.payload = null;
+        throw authError;
+      }
 
       const contentType = (response.headers.get('content-type') || '').toLowerCase();
       if (contentType.includes('application/json')) {
@@ -1902,6 +2311,234 @@
       ).join('');
     }
 
+    function topologySearchTerm() {
+      const input = el('topologySearch');
+      return input ? String(input.value || '').trim().toLowerCase() : '';
+    }
+
+    function filterRulesForTopology(rules) {
+      const term = topologySearchTerm();
+      if (!term) {
+        return rules.map(rule => ({
+          ...rule,
+          filteredFolders: rule.folderDestinations || [],
+          filteredLpds: rule.forwardDestinations || []
+        }));
+      }
+
+      const filtered = [];
+      for (const rule of rules) {
+        const allFolders = rule.folderDestinations || [];
+        const allLpds = rule.forwardDestinations || [];
+
+        const ruleMatches = (rule.name || '').toLowerCase().includes(term)
+          || String(rule.id).includes(term)
+          || String(rule.priority).includes(term)
+          || (rule.queueMatchValue || '').toLowerCase().includes(term);
+
+        const matchingFolders = allFolders.filter(folder =>
+          (folder.rootFolder || '').toLowerCase().includes(term)
+          || (folder.subfolderPattern || '').toLowerCase().includes(term)
+          || (folder.subfolderPatternType || '').toLowerCase().includes(term)
+          || String(folder.id).includes(term)
+        );
+
+        const matchingLpds = allLpds.filter(forward =>
+          (forward.host || '').toLowerCase().includes(term)
+          || String(forward.port || '').includes(term)
+          || (forward.outboundQueueName || '').toLowerCase().includes(term)
+          || String(forward.id).includes(term)
+        );
+
+        if (ruleMatches || matchingFolders.length > 0 || matchingLpds.length > 0) {
+          filtered.push({
+            ...rule,
+            filteredFolders: ruleMatches ? allFolders : matchingFolders,
+            filteredLpds: ruleMatches ? allLpds : matchingLpds
+          });
+        }
+      }
+
+      return filtered;
+    }
+
+    function buildJumpItems(rulesForDisplay) {
+      const options = [];
+      const sourceRules = Array.isArray(rulesForDisplay) ? rulesForDisplay : state.rules;
+
+      for (const rule of sourceRules) {
+        options.push({
+          value: 'rule|' + rule.id,
+          label: '[Rule] ' + rule.name + ' (#' + rule.id + ')'
+        });
+
+        const folders = rule.filteredFolders || rule.folderDestinations || [];
+        const lpds = rule.filteredLpds || rule.forwardDestinations || [];
+
+        for (const folder of folders) {
+          options.push({
+            value: 'folder|' + folder.id,
+            label: '[Folder] ' + rule.name + ' -> ' + folder.rootFolder + ' (#' + folder.id + ')'
+          });
+        }
+
+        for (const forward of lpds) {
+          options.push({
+            value: 'lpd|' + forward.id,
+            label: '[LPD] ' + rule.name + ' -> ' + forward.host + ':' + forward.port + ' / ' + forward.outboundQueueName + ' (#' + forward.id + ')'
+          });
+        }
+      }
+
+      if (options.length === 0) {
+        el('jumpItemSelect').innerHTML = '<option value="">No items available</option>';
+        return;
+      }
+
+      el('jumpItemSelect').innerHTML = options
+        .map(item => '<option value="' + item.value + '">' + item.label + '</option>')
+        .join('');
+    }
+
+    function renderTopology() {
+      const filteredRules = filterRulesForTopology(state.rules);
+      const ruleCount = filteredRules.length;
+      const folderCount = filteredRules.reduce((sum, rule) => sum + ((rule.filteredFolders || []).length), 0);
+      const lpdCount = filteredRules.reduce((sum, rule) => sum + ((rule.filteredLpds || []).length), 0);
+
+      const summary = el('topologySummary');
+      if (summary) {
+        const counts = summary.querySelectorAll('.count');
+        if (counts.length >= 3) {
+          counts[0].textContent = String(ruleCount);
+          counts[1].textContent = String(folderCount);
+          counts[2].textContent = String(lpdCount);
+        }
+      }
+
+      const list = el('topologyRuleList');
+      if (!list) {
+        return;
+      }
+
+      if (ruleCount === 0) {
+        list.innerHTML = topologySearchTerm()
+          ? '<div class="muted">No matching rules, folders, or LPD destinations found.</div>'
+          : '<div class="muted">No rules are configured yet.</div>';
+        buildJumpItems(filteredRules);
+        return;
+      }
+
+      list.innerHTML = filteredRules.map(rule => {
+        const color = normalizeHexColor(rule.highlightColor);
+        const folders = rule.filteredFolders || [];
+        const lpds = rule.filteredLpds || [];
+
+        const folderItems = folders.length === 0
+          ? '<div class="topology-item-empty">No folder destinations.</div>'
+          : folders.map(folder =>
+              '<div class="topology-item" style="border-left-color:' + color + ';">' +
+                '<div>' +
+                  '<div class="topology-item-name">' + folder.rootFolder + '</div>' +
+                  '<div class="muted">Pattern: ' + folder.subfolderPatternType + ' / ' + folder.subfolderPattern + '</div>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<span class="topology-item-id">Folder #' + folder.id + '</span>' +
+                  '<button onclick="jumpToSettingsItem(\'folder\',' + folder.id + ')">Edit</button>' +
+                '</div>' +
+              '</div>'
+            ).join('');
+
+        const lpdItems = lpds.length === 0
+          ? '<div class="topology-item-empty">No LPD destinations.</div>'
+          : lpds.map(forward =>
+              '<div class="topology-item" style="border-left-color:' + color + ';">' +
+                '<div>' +
+                  '<div class="topology-item-name">' + forward.host + ':' + forward.port + '</div>' +
+                  '<div class="muted">Queue: ' + forward.outboundQueueName + '</div>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<span class="topology-item-id">LPD #' + forward.id + '</span>' +
+                  '<button onclick="jumpToSettingsItem(\'lpd\',' + forward.id + ')">Edit</button>' +
+                '</div>' +
+              '</div>'
+            ).join('');
+
+        return '<div class="topology-rule-card" style="border-left-color:' + color + ';">' +
+          '<div class="topology-rule-head">' +
+            '<div>' +
+              '<div class="topology-rule-title"><span class="rule-color-chip" style="background:' + color + '; margin-right:0;"></span>' + rule.name + '</div>' +
+              '<div class="topology-rule-meta">Priority ' + rule.priority + ' · Match ' + rule.queueMatchType + ': ' + (rule.queueMatchValue || '(none)') + '</div>' +
+            '</div>' +
+            '<div class="actions">' +
+              statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') +
+              '<button onclick="jumpToSettingsItem(\'rule\',' + rule.id + ')">Edit Rule</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="topology-children">' +
+            '<div><strong>Folder Destinations</strong></div>' +
+            folderItems +
+            '<div style="margin-top:4px;"><strong>LPD Destinations</strong></div>' +
+            lpdItems +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      buildJumpItems(filteredRules);
+    }
+
+    function jumpToSettingsItem(kind, id) {
+      const normalizedKind = String(kind || '').toLowerCase();
+      const numericId = Number(id);
+      el('topologyError').textContent = '';
+
+      if (!numericId) {
+        el('topologyError').textContent = 'Please choose a valid item to jump to.';
+        return;
+      }
+
+      if (normalizedKind === 'rule') {
+        setActiveView('rules');
+        editRule(numericId);
+        const input = el('ruleName');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      if (normalizedKind === 'folder') {
+        const folder = state.folderDestinations.find(x => x.id === numericId);
+        setActiveView('folder');
+        if (folder) {
+          editFolder(numericId);
+        }
+        const input = el('folderRoot');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      if (normalizedKind === 'lpd') {
+        const forward = state.forwardDestinations.find(x => x.id === numericId);
+        setActiveView('lpd');
+        if (forward) {
+          editForward(numericId);
+        }
+        const input = el('forwardHost');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      el('topologyError').textContent = 'Unknown item type selected.';
+    }
+
     function renderQueue() {
       el('queueBody').innerHTML = state.workItems.map(item =>
         '<tr class="queue-row' + (state.queueSelectedId === item.id ? ' selected' : '') + '" onclick="selectQueueItem(\'' + item.id + '\')" style="border-left:4px solid ' + ruleHighlightColor(item.ruleId) + ';">' +
@@ -1929,14 +2566,449 @@
     async function loadAuthStatus() {
       try {
         const status = await fetchJson('/auth/status');
+        if (!status || status.authenticated !== true) {
+          await forceLogoutAndRedirect();
+          return;
+        }
+
         state.currentRole = status.role || 'ReadOnly';
+        state.currentUsername = (status.username || 'admin').toLowerCase();
+        state.sessionMinutes = Math.max(5, Number(status.sessionMinutes) || 480);
         el('authStatus').textContent = status.authenticated
           ? ('Signed in as ' + (status.username || 'admin') + ' (' + state.currentRole + ')')
           : 'Signed out';
         applyAccessControls();
+        initializeStatusLayoutForCurrentUser();
+        startSessionGuards();
       } catch (_) {
         el('authStatus').textContent = '';
+        if (!state.currentUsername) {
+          state.currentUsername = 'anonymous';
+        }
+        initializeStatusLayoutForCurrentUser();
       }
+    }
+
+    function clearSessionGuards() {
+      if (state.sessionCheckTimerId) {
+        window.clearInterval(state.sessionCheckTimerId);
+        state.sessionCheckTimerId = null;
+      }
+
+      if (state.inactivityTimerId) {
+        window.clearTimeout(state.inactivityTimerId);
+        state.inactivityTimerId = null;
+      }
+    }
+
+    function scheduleInactivityLogout() {
+      if (state.inactivityTimerId) {
+        window.clearTimeout(state.inactivityTimerId);
+      }
+
+      const timeoutMs = Math.max(5, Number(state.sessionMinutes) || 480) * 60 * 1000;
+      state.inactivityTimerId = window.setTimeout(() => {
+        forceLogoutAndRedirect();
+      }, timeoutMs);
+    }
+
+    function startSessionGuards() {
+      clearSessionGuards();
+
+      const resetActivityTimer = () => scheduleInactivityLogout();
+      if (!state.sessionGuardsAttached) {
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(eventName => {
+          document.addEventListener(eventName, resetActivityTimer, { passive: true });
+        });
+        state.sessionGuardsAttached = true;
+      }
+      scheduleInactivityLogout();
+
+      state.sessionCheckTimerId = window.setInterval(async () => {
+        try {
+          const response = await fetch(resolveAppUrl('/auth/status'), { credentials: 'same-origin' });
+          if (!response.ok) {
+            await forceLogoutAndRedirect();
+            return;
+          }
+
+          const status = await response.json();
+          if (!status || status.authenticated !== true) {
+            await forceLogoutAndRedirect();
+          }
+        } catch (_) {
+          // Ignore transient polling failures.
+        }
+      }, 60000);
+    }
+
+    async function loadAlertSettings() {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      const settings = await fetchJson('/api/alerts/settings');
+      state.alerts = settings;
+
+      el('alertMonitorEnabled').value = settings.monitorEnabled ? 'true' : 'false';
+      el('alertMonitorUrl').value = settings.monitorUrl || '';
+      el('alertMonitorInterval').value = settings.monitorIntervalSeconds || 60;
+      el('alertEmailEnabled').value = settings.emailEnabled ? 'true' : 'false';
+      el('alertEmailSmtpHost').value = settings.emailSmtpHost || '';
+      el('alertEmailSmtpPort').value = settings.emailSmtpPort || 587;
+      el('alertEmailUseSsl').value = settings.emailUseSsl ? 'true' : 'false';
+      el('alertEmailUsername').value = settings.emailUsername || '';
+      el('alertEmailPassword').value = '';
+      el('alertEmailFrom').value = settings.emailFrom || '';
+      el('alertEmailTo').value = settings.emailTo || '';
+      el('alertEmailCooldownMinutes').value = settings.listenerDownEmailCooldownMinutes || 30;
+      el('alertClearEmailPassword').value = 'false';
+      el('alertError').textContent = settings.emailPasswordConfigured
+        ? 'SMTP password is configured. Leave password blank to keep it unchanged.'
+        : '';
+    }
+
+    async function saveAlertSettings() {
+      try {
+        el('alertError').textContent = '';
+
+        const request = {
+          monitorEnabled: el('alertMonitorEnabled').value === 'true',
+          monitorUrl: el('alertMonitorUrl').value.trim() || null,
+          monitorIntervalSeconds: Number(el('alertMonitorInterval').value),
+          emailEnabled: el('alertEmailEnabled').value === 'true',
+          emailSmtpHost: el('alertEmailSmtpHost').value.trim() || null,
+          emailSmtpPort: Number(el('alertEmailSmtpPort').value),
+          emailUseSsl: el('alertEmailUseSsl').value === 'true',
+          emailUsername: el('alertEmailUsername').value.trim() || null,
+          emailPassword: el('alertEmailPassword').value,
+          clearEmailPassword: el('alertClearEmailPassword').value === 'true',
+          emailFrom: el('alertEmailFrom').value.trim() || null,
+          emailTo: el('alertEmailTo').value.trim() || null,
+          listenerDownEmailCooldownMinutes: Number(el('alertEmailCooldownMinutes').value)
+        };
+
+        await fetchJson('/api/alerts/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+
+        await loadAlertSettings();
+      } catch (err) {
+        el('alertError').textContent = 'Failed saving alert settings: ' + err.message;
+      }
+    }
+
+    function statusLayoutStorageKey() {
+      const userName = (state.currentUsername || 'anonymous').toLowerCase();
+      return 'beaconRelay.statusLayout.' + userName;
+    }
+
+    function statusLayoutLockStorageKey() {
+      const userName = (state.currentUsername || 'anonymous').toLowerCase();
+      return 'beaconRelay.statusLayout.lock.' + userName;
+    }
+
+    function cloneStatusLayoutDefaults() {
+      return Object.fromEntries(Object.entries(statusLayoutDefaults).map(([id, layout]) => [id, { ...layout }]));
+    }
+
+    function clampStatusPanelLayout(layout) {
+      const next = { ...layout };
+      next.w = Math.max(2, Math.min(statusLayoutColumns, Number(next.w) || 2));
+      next.h = Math.max(2, Number(next.h) || 2);
+      next.x = Math.max(1, Math.min(statusLayoutColumns - next.w + 1, Number(next.x) || 1));
+      next.y = Math.max(1, Number(next.y) || 1);
+      return next;
+    }
+
+    function loadStatusLayoutForCurrentUser() {
+      const defaults = cloneStatusLayoutDefaults();
+      const key = statusLayoutStorageKey();
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+          return defaults;
+        }
+
+        const parsed = JSON.parse(raw);
+        const panels = parsed && typeof parsed === 'object' ? parsed.panels : null;
+        if (!panels || typeof panels !== 'object') {
+          return defaults;
+        }
+
+        for (const panelId of Object.keys(defaults)) {
+          if (panels[panelId]) {
+            defaults[panelId] = clampStatusPanelLayout({ ...defaults[panelId], ...panels[panelId] });
+          }
+        }
+
+        return defaults;
+      } catch (_) {
+        return defaults;
+      }
+    }
+
+    function saveStatusLayoutForCurrentUser() {
+      if (!state.statusLayout) {
+        return;
+      }
+
+      const key = statusLayoutStorageKey();
+      try {
+        const payload = {
+          panels: state.statusLayout,
+          updatedUtc: new Date().toISOString()
+        };
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_) {
+        // Ignore storage write failures (quota/private mode).
+      }
+    }
+
+    function loadStatusLayoutLockForCurrentUser() {
+      try {
+        const raw = window.localStorage.getItem(statusLayoutLockStorageKey());
+        return raw === '1';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function saveStatusLayoutLockForCurrentUser() {
+      try {
+        window.localStorage.setItem(statusLayoutLockStorageKey(), state.statusLayoutLocked ? '1' : '0');
+      } catch (_) {
+        // Ignore storage write failures (quota/private mode).
+      }
+    }
+
+    function applyStatusLayoutLockUi() {
+      const isLocked = !!state.statusLayoutLocked;
+      document.body.classList.toggle('status-layout-locked', isLocked);
+
+      const lockButton = el('toggleStatusLayoutLock');
+      if (lockButton) {
+        lockButton.textContent = isLocked ? 'Unlock Layout' : 'Lock Layout';
+        lockButton.setAttribute('aria-pressed', isLocked ? 'true' : 'false');
+        lockButton.title = isLocked
+          ? 'Unlock panel dragging and resizing'
+          : 'Lock panel dragging and resizing';
+      }
+    }
+
+    function toggleStatusLayoutLock() {
+      state.statusLayoutLocked = !state.statusLayoutLocked;
+      saveStatusLayoutLockForCurrentUser();
+      applyStatusLayoutLockUi();
+    }
+
+    function panelLayoutsOverlap(a, b) {
+      const aRight = a.x + a.w - 1;
+      const aBottom = a.y + a.h - 1;
+      const bRight = b.x + b.w - 1;
+      const bBottom = b.y + b.h - 1;
+      return !(aRight < b.x || bRight < a.x || aBottom < b.y || bBottom < a.y);
+    }
+
+    function resolveStatusPanelCollisions(changedPanelId) {
+      if (!state.statusLayout) {
+        return;
+      }
+
+      const ids = Object.keys(statusLayoutDefaults);
+      let adjusted = true;
+      let guard = 0;
+
+      while (adjusted && guard < 64) {
+        adjusted = false;
+        guard += 1;
+
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const idA = ids[i];
+            const idB = ids[j];
+            const layoutA = state.statusLayout[idA];
+            const layoutB = state.statusLayout[idB];
+            if (!layoutA || !layoutB) {
+              continue;
+            }
+
+            if (!panelLayoutsOverlap(layoutA, layoutB)) {
+              continue;
+            }
+
+            const movingB = changedPanelId === idB;
+            const targetId = movingB ? idA : idB;
+            const anchor = movingB ? layoutB : layoutA;
+            const current = state.statusLayout[targetId];
+
+            state.statusLayout[targetId] = clampStatusPanelLayout({
+              ...current,
+              y: anchor.y + anchor.h
+            });
+            adjusted = true;
+          }
+        }
+      }
+    }
+
+    function applyStatusLayoutToGrid() {
+      const grid = document.querySelector('.status-grid');
+      if (!grid || !state.statusLayout) {
+        return;
+      }
+
+      const isDesktop = window.matchMedia('(min-width: 1000px)').matches;
+      const panels = Array.from(grid.querySelectorAll('.status-panel'));
+      for (const panel of panels) {
+        const panelId = panel.getAttribute('data-panel-id') || '';
+        const layout = state.statusLayout[panelId] || statusLayoutDefaults[panelId];
+        if (!layout || !isDesktop) {
+          panel.style.gridColumn = '';
+          panel.style.gridRow = '';
+          continue;
+        }
+
+        panel.style.gridColumn = layout.x + ' / span ' + layout.w;
+        panel.style.gridRow = layout.y + ' / span ' + layout.h;
+      }
+    }
+
+    function beginStatusPanelInteraction(event, panel, mode) {
+      if (!window.matchMedia('(min-width: 1000px)').matches || !state.statusLayout || state.statusLayoutLocked) {
+        return;
+      }
+
+      const panelId = panel.getAttribute('data-panel-id') || '';
+      const existing = state.statusLayout[panelId];
+      if (!panelId || !existing) {
+        return;
+      }
+
+      const grid = document.querySelector('.status-grid');
+      if (!grid) {
+        return;
+      }
+
+      event.preventDefault();
+      panel.classList.add('dragging');
+
+      const styles = window.getComputedStyle(grid);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || '14') || 14;
+      const rowHeight = Number.parseFloat(styles.gridAutoRows || '88') || 88;
+      const gridRect = grid.getBoundingClientRect();
+      const colWidth = (gridRect.width - (gap * (statusLayoutColumns - 1))) / statusLayoutColumns;
+
+      statusLayoutInteraction = {
+        mode,
+        panel,
+        panelId,
+        startLayout: { ...existing },
+        startX: event.clientX,
+        startY: event.clientY,
+        colUnit: Math.max(1, colWidth + gap),
+        rowUnit: Math.max(1, rowHeight + gap)
+      };
+
+      window.addEventListener('pointermove', onStatusPanelInteractionMove);
+      window.addEventListener('pointerup', endStatusPanelInteraction);
+    }
+
+    function onStatusPanelInteractionMove(event) {
+      if (!statusLayoutInteraction || !state.statusLayout) {
+        return;
+      }
+
+      const interaction = statusLayoutInteraction;
+      const dx = event.clientX - interaction.startX;
+      const dy = event.clientY - interaction.startY;
+      const deltaCols = Math.round(dx / interaction.colUnit);
+      const deltaRows = Math.round(dy / interaction.rowUnit);
+
+      if (interaction.mode === 'move') {
+        const moved = clampStatusPanelLayout({
+          ...interaction.startLayout,
+          x: interaction.startLayout.x + deltaCols,
+          y: interaction.startLayout.y + deltaRows
+        });
+        state.statusLayout[interaction.panelId] = moved;
+      } else {
+        const resized = clampStatusPanelLayout({
+          ...interaction.startLayout,
+          w: interaction.startLayout.w + deltaCols,
+          h: interaction.startLayout.h + deltaRows
+        });
+        state.statusLayout[interaction.panelId] = resized;
+      }
+
+      resolveStatusPanelCollisions(interaction.panelId);
+      applyStatusLayoutToGrid();
+    }
+
+    function endStatusPanelInteraction() {
+      if (!statusLayoutInteraction) {
+        return;
+      }
+
+      statusLayoutInteraction.panel.classList.remove('dragging');
+      statusLayoutInteraction = null;
+      window.removeEventListener('pointermove', onStatusPanelInteractionMove);
+      window.removeEventListener('pointerup', endStatusPanelInteraction);
+      saveStatusLayoutForCurrentUser();
+    }
+
+    function ensureStatusPanelControls() {
+      const panels = Array.from(document.querySelectorAll('.status-panel'));
+      for (const panel of panels) {
+        if (panel.querySelector('.panel-controls')) {
+          continue;
+        }
+
+        const panelId = panel.getAttribute('data-panel-id') || '';
+        if (!panelId) {
+          continue;
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'panel-controls';
+
+        const dragHandle = document.createElement('button');
+        dragHandle.type = 'button';
+        dragHandle.className = 'panel-drag-handle';
+        dragHandle.textContent = 'Move';
+        dragHandle.title = 'Drag to reposition panel';
+        dragHandle.addEventListener('pointerdown', (event) => beginStatusPanelInteraction(event, panel, 'move'));
+
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'panel-resize-handle';
+        resizeHandle.title = 'Drag to resize panel';
+        resizeHandle.addEventListener('pointerdown', (event) => beginStatusPanelInteraction(event, panel, 'resize'));
+
+        controls.appendChild(dragHandle);
+        panel.appendChild(controls);
+        panel.appendChild(resizeHandle);
+      }
+    }
+
+    function initializeStatusLayoutForCurrentUser() {
+      if (!state.currentUsername) {
+        return;
+      }
+
+      ensureStatusPanelControls();
+      state.statusLayout = loadStatusLayoutForCurrentUser();
+      state.statusLayoutLocked = loadStatusLayoutLockForCurrentUser();
+      resolveStatusPanelCollisions();
+      applyStatusLayoutToGrid();
+      applyStatusLayoutLockUi();
+    }
+
+    function resetStatusLayoutForCurrentUser() {
+      state.statusLayout = cloneStatusLayoutDefaults();
+      applyStatusLayoutToGrid();
+      saveStatusLayoutForCurrentUser();
     }
 
     async function loadRetryPolicies() {
@@ -2175,6 +3247,7 @@
       renderRules();
       renderFolderDestinations();
       renderForwardDestinations();
+      renderTopology();
     }
 
     function resetRuleForm() {
@@ -2611,6 +3684,7 @@
     }
 
     async function logout() {
+      clearSessionGuards();
       try {
         await fetchJson('/auth/logout', { method: 'POST' });
       } catch (_) {
@@ -2735,9 +3809,14 @@
     window.editPurgePolicy = editPurgePolicy;
     window.editAdminUser = editAdminUser;
     window.deleteAdminUser = deleteAdminUser;
+    window.jumpToSettingsItem = jumpToSettingsItem;
 
     function setActiveView(viewName) {
       if (viewName === 'administrators' && !state.canManageAdminUsers) {
+        viewName = 'status';
+      }
+
+      if (viewName === 'alerts' && !state.canManageAdminUsers) {
         viewName = 'status';
       }
 
@@ -2758,7 +3837,10 @@
           state.isMenuCollapsed = true;
           applyMenuState();
         }
-        if (target === 'status') { loadStatus(); }
+        if (target === 'status') {
+          applyStatusLayoutToGrid();
+          loadStatus();
+        }
         if (target === 'retention') {
           loadRetentionSettings();
           loadPurgePolicies();
@@ -2766,6 +3848,10 @@
         if (target === 'administrators') {
           resetAdminUserForm();
           loadAdminUsers();
+        }
+
+        if (target === 'alerts') {
+          loadAlertSettings();
         }
       });
     });
@@ -2808,6 +3894,8 @@
         state.isMenuCollapsed = true;
         applyMenuState();
       }
+
+       applyStatusLayoutToGrid();
     });
 
     el('saveRule').addEventListener('click', saveRule);
@@ -2835,6 +3923,19 @@
     el('resetAdminUser').addEventListener('click', resetAdminUserForm);
     el('refreshAdminUsers').addEventListener('click', async () => { await loadAdminUsers(); });
     el('refreshQueue').addEventListener('click', async () => { state.queuePage = 1; await loadQueue(); });
+    el('jumpToItem').addEventListener('click', () => {
+      const selected = el('jumpItemSelect').value || '';
+      const parts = selected.split('|');
+      if (parts.length !== 2) {
+        el('topologyError').textContent = 'Please select a rule, folder, or LPD item first.';
+        return;
+      }
+
+      jumpToSettingsItem(parts[0], parts[1]);
+    });
+    el('topologySearch').addEventListener('input', () => {
+      renderTopology();
+    });
     el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
     el('queuePageSize').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
@@ -2853,11 +3954,17 @@
     el('pauseBtn').addEventListener('click', pauseDelivery);
     el('resumeBtn').addEventListener('click', resumeDelivery);
     el('refreshStatus').addEventListener('click', loadStatus);
+    el('toggleStatusLayoutLock').addEventListener('click', toggleStatusLayoutLock);
+    el('resetStatusLayout').addEventListener('click', resetStatusLayoutForCurrentUser);
+    el('saveAlertSettings').addEventListener('click', saveAlertSettings);
+    el('refreshAlertSettings').addEventListener('click', async () => { await loadAlertSettings(); });
 
     (async function init() {
       syncLayoutOffsets();
       attachLabelHelp();
       state.isMenuCollapsed = window.innerWidth < 980;
+      state.currentUsername = 'anonymous';
+      initializeStatusLayoutForCurrentUser();
       applyMenuState();
       setActiveView('status');
       applyAccessControls();
@@ -2871,6 +3978,7 @@
       await loadStatus();
       await loadRetentionSettings();
       await loadPurgePolicies();
+      await loadAlertSettings();
     })();
   </script>
 </body>

@@ -186,3 +186,23 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-BeaconRelay.ps1 -Mode Remove -
 # Status
 powershell -ExecutionPolicy Bypass -File .\Deploy-BeaconRelay.ps1 -Mode Status -AppRoot '..' @common
 ```
+
+## 10) Post-Deploy Alert Setup (Admin)
+
+After deploy/upgrade, sign in to the admin UI as an Admin user and configure alert settings:
+
+1. Open `Admin -> Alerts`.
+2. Configure CRON monitor heartbeat settings (enable, URL, interval).
+3. Configure listener-down email settings (SMTP, from/to, cooldown).
+4. Save settings.
+5. Validate behavior:
+  - While listener is healthy, monitor heartbeat messages are sent.
+  - When listener is down/unavailable, monitor messages stop.
+  - Listener-down email alert is sent according to cooldown settings.
+
+## 11) Network Prerequisites For Alerts
+
+If alerts are enabled, ensure outbound connectivity from the service host:
+
+- HTTP/HTTPS egress to the configured monitor endpoint.
+- SMTP egress to the configured mail host and port.

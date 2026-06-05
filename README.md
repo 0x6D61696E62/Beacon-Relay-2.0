@@ -22,6 +22,12 @@ Beacon Relay 2.0 is a production-oriented .NET 8 service that receives LPD (RFC 
   - `MarkAndStore` (default): keep file and flag duplicate
   - `SkipWrite`: skip second write and reference existing file
 - Runs retention cleanup in background with configurable schedule/window.
+- Supports admin-configured listener alerts:
+  - CRON monitor heartbeat messages while LPD listener is healthy
+  - listener-down email alerts with cooldown control
+- Supports admin session protections:
+  - inactivity auto-logout
+  - forced logout when session is no longer valid
 - Exposes health endpoints:
   - `/healthz` (liveness)
   - `/readyz` (readiness incl. DB check)
@@ -58,6 +64,37 @@ Beacon Relay 2.0 is a production-oriented .NET 8 service that receives LPD (RFC 
   - `Port`
   - `HealthPath`
   - `ReadinessPath`
+
+### Alert configuration
+
+Alert settings are configured by Admin users in the web UI (`Admin -> Alerts`) and stored in the SQLite database.
+
+- CRON monitor settings
+  - enable/disable
+  - monitor URL
+  - monitor interval seconds
+- Email alert settings
+  - enable/disable
+  - SMTP host/port/SSL
+  - optional SMTP username/password
+  - sender and recipient(s)
+  - listener-down cooldown minutes
+
+These settings are runtime/admin managed and are not currently configured through `appsettings.json`.
+
+### Session behavior
+
+Admin UI sessions use cookie authentication and enforce both inactivity timeout and session validity checks.
+
+- Inactivity timeout:
+  - The UI logs out and redirects to `login.html` after no user activity for the configured session duration.
+  - Duration is derived from `AdminAuth.SessionMinutes` (minimum 5 minutes).
+- Session validity checks:
+  - The UI periodically verifies the current session via `/auth/status`.
+  - If the session is no longer valid (or API returns `401`), the UI signs out and redirects to `login.html`.
+- API/session gate behavior:
+  - `/api/*` requires authentication and returns `401` when unauthenticated.
+  - `/admin/*` unauthenticated requests are redirected to `login.html` with a return URL.
 
 ## Build, test, run
 
@@ -126,6 +163,7 @@ Notes:
 - `-ConvertExistingDatabaseToSqlCipher` is required to convert an existing plaintext SQLite database.
 - Use either `-DatabaseBackupPath` or `-SkipDatabaseConversionBackup` when converting, not both.
 - `AdminAuth` values are bootstrap credentials for first-run admin seeding.
+- After deployment, sign in as Admin and configure alerts in the Alerts page if monitor/email notifications are required.
 
 ## Database migration/init
 
@@ -134,6 +172,8 @@ Migrations are included under:
 - `BeaconRelay.LpdReceiver/Data/Migrations`
 
 On startup, the service runs `Database.Migrate()` automatically.
+
+This includes alert settings schema updates (for example, the `AlertSettings` table).
 
 ## Protocol scope and limitations
 
@@ -148,3 +188,6 @@ On startup, the service runs `Database.Migrate()` automatically.
 - Ensure service account has write permission to configured output directory.
 - Retention updates DB status if files are deleted or already missing.
 - All persisted timestamps use UTC.
+- For monitor/email alerts, ensure outbound network access from host:
+  - HTTP/HTTPS to monitor endpoint
+  - SMTP to configured mail server/port

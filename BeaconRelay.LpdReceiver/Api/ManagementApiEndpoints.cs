@@ -55,6 +55,10 @@ public static class ManagementApiEndpoints
         adminUsers.MapPost("/", CreateAdminUserAsync);
         adminUsers.MapPut("/{id:int}", UpdateAdminUserAsync);
         adminUsers.MapDelete("/{id:int}", DeleteAdminUserAsync);
+
+        var alerts = api.MapGroup("/alerts").RequireAuthorization("AdminOnly");
+        alerts.MapGet("/settings", GetAlertSettingsAsync);
+        alerts.MapPut("/settings", UpdateAlertSettingsAsync);
     }
 
     private static async Task<IResult> GetAdminUsersAsync(AppDbContext db, CancellationToken cancellationToken)
@@ -179,6 +183,7 @@ public static class ManagementApiEndpoints
     {
         var data = await db.ProcessingRules
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.VirtualPrinter)
             .Include(x => x.FolderDestinations)
             .Include(x => x.ForwardDestinations)
@@ -192,6 +197,7 @@ public static class ManagementApiEndpoints
     {
         var data = await db.ProcessingRules
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.VirtualPrinter)
             .Include(x => x.FolderDestinations)
             .Include(x => x.ForwardDestinations)
@@ -593,7 +599,7 @@ public static class ManagementApiEndpoints
                 Canceled = g.Count(x => x.Status == DeliveryWorkItemStatus.Canceled),
                 Total = g.Count()
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
 
         var queueStats = stats is null
             ? new DeliveryQueueStats(0, 0, 0, 0, 0, 0, 0)
@@ -778,6 +784,86 @@ public static class ManagementApiEndpoints
         return Results.Ok(existing);
     }
 
+    private static async Task<IResult> GetAlertSettingsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var settings = await db.AlertSettings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == 1, cancellationToken)
+            ?? new AlertSettingsRecord
+            {
+                Id = 1,
+                MonitorIntervalSeconds = 60,
+                EmailSmtpPort = 587,
+                EmailUseSsl = true,
+                ListenerDownEmailCooldownMinutes = 30,
+                UpdatedUtc = DateTime.UtcNow
+            };
+
+        return Results.Ok(ToAlertSettingsResult(settings));
+    }
+
+    private static async Task<IResult> UpdateAlertSettingsAsync(AlertSettingsUpdateRequest input, AppDbContext db, CancellationToken cancellationToken)
+    {
+        var errors = ValidateAlertSettings(input);
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var settings = await db.AlertSettings.FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        if (settings is null)
+        {
+            settings = new AlertSettingsRecord
+            {
+                Id = 1,
+                CreatedUtc = DateTime.UtcNow
+            };
+            db.AlertSettings.Add(settings);
+        }
+
+        settings.MonitorEnabled = input.MonitorEnabled;
+        settings.MonitorUrl = string.IsNullOrWhiteSpace(input.MonitorUrl) ? null : input.MonitorUrl.Trim();
+        settings.MonitorIntervalSeconds = input.MonitorIntervalSeconds;
+        settings.EmailEnabled = input.EmailEnabled;
+        settings.EmailSmtpHost = string.IsNullOrWhiteSpace(input.EmailSmtpHost) ? null : input.EmailSmtpHost.Trim();
+        settings.EmailSmtpPort = input.EmailSmtpPort;
+        settings.EmailUseSsl = input.EmailUseSsl;
+        settings.EmailUsername = string.IsNullOrWhiteSpace(input.EmailUsername) ? null : input.EmailUsername.Trim();
+        settings.EmailFrom = string.IsNullOrWhiteSpace(input.EmailFrom) ? null : input.EmailFrom.Trim();
+        settings.EmailTo = string.IsNullOrWhiteSpace(input.EmailTo) ? null : input.EmailTo.Trim();
+        settings.ListenerDownEmailCooldownMinutes = input.ListenerDownEmailCooldownMinutes;
+
+        if (input.ClearEmailPassword)
+        {
+            settings.EmailPassword = null;
+        }
+        else if (!string.IsNullOrWhiteSpace(input.EmailPassword))
+        {
+            settings.EmailPassword = input.EmailPassword;
+        }
+
+        settings.UpdatedUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(ToAlertSettingsResult(settings));
+    }
+
+    private static AlertSettingsResult ToAlertSettingsResult(AlertSettingsRecord settings)
+    {
+        return new AlertSettingsResult(
+            settings.MonitorEnabled,
+            settings.MonitorUrl,
+            settings.MonitorIntervalSeconds,
+            settings.EmailEnabled,
+            settings.EmailSmtpHost,
+            settings.EmailSmtpPort,
+            settings.EmailUseSsl,
+            settings.EmailUsername,
+            !string.IsNullOrWhiteSpace(settings.EmailPassword),
+            settings.EmailFrom,
+            settings.EmailTo,
+            settings.ListenerDownEmailCooldownMinutes,
+            settings.UpdatedUtc);
+    }
+
     private static Dictionary<string, string[]> ValidateRule(ProcessingRuleUpsertRequest input)
     {
         var errors = new Dictionary<string, string[]>();
@@ -943,6 +1029,59 @@ public static class ManagementApiEndpoints
         if (input.IntervalMinutes < 1)
         {
             errors[nameof(input.IntervalMinutes)] = ["IntervalMinutes must be at least 1."];
+        }
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateAlertSettings(AlertSettingsUpdateRequest input)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (input.MonitorEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(input.MonitorUrl))
+            {
+                errors[nameof(input.MonitorUrl)] = ["MonitorUrl is required when monitor messaging is enabled."];
+            }
+            else if (!Uri.TryCreate(input.MonitorUrl.Trim(), UriKind.Absolute, out var monitorUri)
+                     || (monitorUri.Scheme != Uri.UriSchemeHttp && monitorUri.Scheme != Uri.UriSchemeHttps))
+            {
+                errors[nameof(input.MonitorUrl)] = ["MonitorUrl must be a valid http or https URL."];
+            }
+
+            if (input.MonitorIntervalSeconds < 10)
+            {
+                errors[nameof(input.MonitorIntervalSeconds)] = ["MonitorIntervalSeconds must be at least 10."];
+            }
+        }
+
+        if (input.EmailEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(input.EmailSmtpHost))
+            {
+                errors[nameof(input.EmailSmtpHost)] = ["EmailSmtpHost is required when email alerts are enabled."];
+            }
+
+            if (input.EmailSmtpPort < 1 || input.EmailSmtpPort > 65535)
+            {
+                errors[nameof(input.EmailSmtpPort)] = ["EmailSmtpPort must be between 1 and 65535."];
+            }
+
+            if (string.IsNullOrWhiteSpace(input.EmailFrom))
+            {
+                errors[nameof(input.EmailFrom)] = ["EmailFrom is required when email alerts are enabled."];
+            }
+
+            if (string.IsNullOrWhiteSpace(input.EmailTo))
+            {
+                errors[nameof(input.EmailTo)] = ["EmailTo is required when email alerts are enabled."];
+            }
+
+            if (input.ListenerDownEmailCooldownMinutes < 1)
+            {
+                errors[nameof(input.ListenerDownEmailCooldownMinutes)] = ["ListenerDownEmailCooldownMinutes must be at least 1."];
+            }
         }
 
         return errors;

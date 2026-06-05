@@ -16,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RetentionSettingsRecord> RetentionSettings => Set<RetentionSettingsRecord>();
     public DbSet<DeliveryPauseRecord> DeliveryPauseState => Set<DeliveryPauseRecord>();
     public DbSet<AdminUserRecord> AdminUsers => Set<AdminUserRecord>();
+    public DbSet<AlertSettingsRecord> AlertSettings => Set<AlertSettingsRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -180,5 +181,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         adminUser.Property(x => x.IsEnabled).IsRequired();
         adminUser.HasIndex(x => x.Username).IsUnique();
         adminUser.HasIndex(x => x.IsEnabled);
+
+        var alertSettings = modelBuilder.Entity<AlertSettingsRecord>();
+        alertSettings.HasKey(x => x.Id);
+        alertSettings.Property(x => x.MonitorUrl).HasMaxLength(2048);
+        alertSettings.Property(x => x.EmailSmtpHost).HasMaxLength(256);
+        alertSettings.Property(x => x.EmailUsername).HasMaxLength(256);
+        alertSettings.Property(x => x.EmailPassword).HasMaxLength(512);
+        alertSettings.Property(x => x.EmailFrom).HasMaxLength(256);
+        alertSettings.Property(x => x.EmailTo).HasMaxLength(1024);
     }
 }

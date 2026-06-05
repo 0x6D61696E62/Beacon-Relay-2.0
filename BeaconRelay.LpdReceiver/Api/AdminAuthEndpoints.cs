@@ -17,9 +17,9 @@ public static class AdminAuthEndpoints
         app.MapPost("/auth/logout", (Delegate)LogoutAsync);
         app.MapGet("/auth/status", GetStatusHandler);
 
-        static IResult GetStatusHandler(HttpContext context)
+        static IResult GetStatusHandler(HttpContext context, IOptions<AdminAuthOptions> options)
         {
-            return GetStatus(context);
+            return GetStatus(context, options.Value);
         }
     }
 
@@ -65,11 +65,11 @@ public static class AdminAuthEndpoints
         return Results.Ok(new { authenticated = false });
     }
 
-    private static IResult GetStatus(HttpContext context)
+    private static IResult GetStatus(HttpContext context, AdminAuthOptions options)
     {
         if (context.User.Identity?.IsAuthenticated != true)
         {
-            return Results.Ok(new { authenticated = false });
+            return Results.Ok(new { authenticated = false, sessionMinutes = Math.Max(5, options.SessionMinutes) });
         }
 
         return Results.Ok(new
@@ -77,6 +77,7 @@ public static class AdminAuthEndpoints
             authenticated = true,
             username = context.User.Identity?.Name,
             role = context.User.FindFirstValue(ClaimTypes.Role) ?? AdminRoles.ReadOnly,
+            sessionMinutes = Math.Max(5, options.SessionMinutes),
         });
     }
 }

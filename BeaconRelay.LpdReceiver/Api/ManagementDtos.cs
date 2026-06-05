@@ -121,3 +121,33 @@ public sealed record RuleDestinationCountResult(
     int ForwardDestinationCount,
     int TotalDestinationCount,
     int DeliveredReportCount);
+
+public sealed record AlertSettingsResult(
+    bool MonitorEnabled,
+    string? MonitorUrl,
+    int MonitorIntervalSeconds,
+    bool EmailEnabled,
+    string? EmailSmtpHost,
+    int EmailSmtpPort,
+    bool EmailUseSsl,
+    string? EmailUsername,
+    bool EmailPasswordConfigured,
+    string? EmailFrom,
+    string? EmailTo,
+    int ListenerDownEmailCooldownMinutes,
+    DateTime UpdatedUtc);
+
+public sealed record AlertSettingsUpdateRequest(
+    bool MonitorEnabled,
+    string? MonitorUrl,
+    int MonitorIntervalSeconds,
+    bool EmailEnabled,
+    string? EmailSmtpHost,
+    int EmailSmtpPort,
+    bool EmailUseSsl,
+    string? EmailUsername,
+    string? EmailPassword,
+    bool ClearEmailPassword,
+    string? EmailFrom,
+    string? EmailTo,
+    int ListenerDownEmailCooldownMinutes);
