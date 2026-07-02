@@ -42,6 +42,28 @@ public static class SqliteDatabasePath
         return string.IsNullOrWhiteSpace(directory) ? null : directory;
     }
 
+    public static string? NormalizeAndResolveConnectionString(string? connectionString, string? baseDirectory)
+    {
+        var normalizedConnectionString = NormalizeConnectionString(connectionString);
+        if (string.IsNullOrWhiteSpace(normalizedConnectionString) || string.IsNullOrWhiteSpace(baseDirectory))
+        {
+            return normalizedConnectionString;
+        }
+
+        var builder = new SqliteConnectionStringBuilder(normalizedConnectionString);
+        var dataSource = builder.DataSource?.Trim();
+        if (string.IsNullOrWhiteSpace(dataSource)
+            || string.Equals(dataSource, ":memory:", StringComparison.OrdinalIgnoreCase)
+            || Path.IsPathRooted(dataSource)
+            || dataSource.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+        {
+            return normalizedConnectionString;
+        }
+
+        builder.DataSource = Path.GetFullPath(dataSource, baseDirectory);
+        return builder.ToString();
+    }
+
     public static void EnsureDirectoryExists(string? connectionString)
     {
         var directory = GetDirectoryPath(connectionString);

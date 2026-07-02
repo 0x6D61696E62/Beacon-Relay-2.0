@@ -1084,6 +1084,7 @@
     </div>
     <div class="meta">
       <div id="authStatus" class="muted"></div>
+      <div id="appVersion" class="muted"></div>
       <button id="logoutButton" class="secondary">Sign Out</button>
     </div>
   </header>
@@ -1773,6 +1774,7 @@
       canManageSettings: false,
       canManageAdminUsers: false,
       adminUsers: [],
+      appVersion: null,
       statusLayout: null,
       statusLayoutLocked: false
     };
@@ -2616,6 +2618,34 @@
           state.currentUsername = 'anonymous';
         }
         initializeStatusLayoutForCurrentUser();
+      }
+    }
+
+    async function loadAppVersion() {
+      const versionElement = el('appVersion');
+      if (!versionElement) {
+        return;
+      }
+
+      try {
+        const data = await fetchJson('/api/system/version');
+        state.appVersion = data;
+
+        const semver = String(data.version || '').trim();
+        const build = String(data.buildNumber || '').trim();
+        const revision = String(data.sourceRevisionId || '').trim();
+
+        let text = semver ? ('Version ' + semver) : 'Version unavailable';
+        if (build) {
+          text += ' | Build ' + build;
+        }
+        if (revision) {
+          text += ' | ' + revision;
+        }
+
+        versionElement.textContent = text;
+      } catch (_) {
+        versionElement.textContent = 'Version unavailable';
       }
     }
 
@@ -4010,6 +4040,7 @@
       setActiveView('status');
       applyAccessControls();
       await loadAuthStatus();
+      await loadAppVersion();
       resetRuleForm();
       await loadRetryPolicies();
       resetFolderForm();

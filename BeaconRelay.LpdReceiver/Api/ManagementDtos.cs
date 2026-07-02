@@ -151,3 +151,11 @@ public sealed record AlertSettingsUpdateRequest(
     string? EmailFrom,
     string? EmailTo,
     int ListenerDownEmailCooldownMinutes);
+
+public sealed record AppVersionResult(
+    string Version,
+    string InformationalVersion,
+    string AssemblyVersion,
+    string FileVersion,
+    string BuildNumber,
+    string SourceRevisionId);

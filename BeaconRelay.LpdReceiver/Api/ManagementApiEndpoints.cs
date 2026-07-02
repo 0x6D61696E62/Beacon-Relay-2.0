@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Reflection;
 using BeaconRelay.LpdReceiver.Data;
 using BeaconRelay.LpdReceiver.Services;
 using Microsoft.AspNetCore.Identity;
@@ -59,6 +60,55 @@ public static class ManagementApiEndpoints
         var alerts = api.MapGroup("/alerts").RequireAuthorization("AdminOnly");
         alerts.MapGet("/settings", GetAlertSettingsAsync);
         alerts.MapPut("/settings", UpdateAlertSettingsAsync);
+
+        var system = api.MapGroup("/system");
+        system.MapGet("/version", GetAppVersion);
+    }
+
+    private static IResult GetAppVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? string.Empty;
+        var assemblyVersion = assembly.GetName().Version?.ToString() ?? string.Empty;
+        var fileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty;
+
+        var buildNumber = string.Empty;
+        var sourceRevisionId = string.Empty;
+        var version = informationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            var plusIndex = informationalVersion.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                version = informationalVersion[..plusIndex];
+
+                var metadata = informationalVersion[(plusIndex + 1)..]
+                    .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                for (var i = 0; i < metadata.Length - 1; i++)
+                {
+                    if (metadata[i].Equals("build", StringComparison.OrdinalIgnoreCase))
+                    {
+                        buildNumber = metadata[i + 1];
+                    }
+
+                    if (metadata[i].Equals("sha", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sourceRevisionId = metadata[i + 1];
+                    }
+                }
+            }
+        }
+
+        return Results.Ok(new AppVersionResult(
+            Version: version,
+            InformationalVersion: informationalVersion,
+            AssemblyVersion: assemblyVersion,
+            FileVersion: fileVersion,
+            BuildNumber: buildNumber,
+            SourceRevisionId: sourceRevisionId));
     }
 
     private static async Task<IResult> GetAdminUsersAsync(AppDbContext db, CancellationToken cancellationToken)

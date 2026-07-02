@@ -36,4 +36,22 @@ public sealed class SqliteDatabasePathTests
 
         Assert.Equal("Data Source=db/beacon-relay.db", options.ConnectionString);
     }
+
+    [Fact]
+    public void NormalizeAndResolveConnectionString_ResolvesRelativePath()
+    {
+        var baseDirectory = Path.Combine(Path.GetTempPath(), "beacon-relay-root");
+        var connectionString = SqliteDatabasePath.NormalizeAndResolveConnectionString("Data Source=db/beacon-relay.db", baseDirectory);
+
+        Assert.Equal($"Data Source={Path.Combine(baseDirectory, "db", "beacon-relay.db")}", connectionString);
+    }
+
+    [Fact]
+    public void NormalizeAndResolveConnectionString_LeavesAbsolutePathUntouched()
+    {
+        var absolutePath = Path.Combine(Path.GetTempPath(), "beacon-relay.db");
+        var connectionString = SqliteDatabasePath.NormalizeAndResolveConnectionString($"Data Source={absolutePath}", Path.Combine(Path.GetTempPath(), "base"));
+
+        Assert.Equal($"Data Source={absolutePath}", connectionString);
+    }
 }

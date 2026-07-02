@@ -4,6 +4,7 @@ using BeaconRelay.LpdReceiver.Options;
 using BeaconRelay.LpdReceiver.Protocol;
 using BeaconRelay.LpdReceiver.Services;
 using BeaconRelay.LpdReceiver.Api;
+using System.Reflection;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
@@ -57,7 +58,8 @@ var healthOptions = builder.Configuration.GetSection(HealthEndpointOptions.Secti
 builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(healthOptions.Port));
 
 var databaseOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
-var normalizedConnectionString = SqliteDatabasePath.NormalizeConnectionString(databaseOptions.ConnectionString) ?? databaseOptions.ConnectionString;
+var normalizedConnectionString = SqliteDatabasePath.NormalizeAndResolveConnectionString(databaseOptions.ConnectionString, builder.Environment.ContentRootPath)
+    ?? databaseOptions.ConnectionString;
 if (!string.IsNullOrWhiteSpace(databaseOptions.Password))
 {
     var connectionBuilder = new SqliteConnectionStringBuilder(normalizedConnectionString)
@@ -92,6 +94,7 @@ builder.Services
     .AddDbContextCheck<AppDbContext>("sqlite", tags: new[] { "ready" });
 
 var app = builder.Build();
+LogApplicationVersion(app.Logger);
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
@@ -195,6 +198,20 @@ static void LogEfQueryOptions(IServiceProvider serviceProvider, AppDbContext db)
         "EF query splitting source: source={Source}, configuredValue={ConfiguredValue}",
         splitBehaviorSource,
         splitBehavior);
+}
+
+static void LogApplicationVersion(ILogger logger)
+{
+    var assembly = Assembly.GetExecutingAssembly();
+    var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty;
+    var assemblyVersion = assembly.GetName().Version?.ToString() ?? string.Empty;
+    var fileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? string.Empty;
+
+    logger.LogInformation(
+        "Application version metadata: informationalVersion={InformationalVersion}, assemblyVersion={AssemblyVersion}, fileVersion={FileVersion}",
+        informationalVersion,
+        assemblyVersion,
+        fileVersion);
 }
 
 var effectiveHealthOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthEndpointOptions>>().Value;

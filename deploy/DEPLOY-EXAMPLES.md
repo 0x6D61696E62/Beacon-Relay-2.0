@@ -6,6 +6,7 @@ Primary scripts:
 
 - `Deploy-BeaconRelay.ps1` (install/upgrade/remove/status)
 - `Build-BeaconRelayArtifact.ps1` (build portable deployment artifact)
+- `Generate-ReleaseNotes.ps1` (generate release notes from Git commits)
 
 ## 1) Build Artifact (Build Machine)
 
@@ -22,6 +23,28 @@ Optional:
 
 - Add `-SkipZip` to avoid zip creation.
 - Add `-Clean` to overwrite an existing artifact directory.
+
+Versioned build example:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
+  -SelfContained `
+  -VersionPrefix 2.1.0 `
+  -BuildNumber 20260702153045 `
+  -SourceRevisionId a1b2c3d
+```
+
+Build artifact and auto-generate release notes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
+  -SelfContained `
+  -GenerateReleaseNotes
+```
 
 ## 2) New Install From Source (Target Machine)
 
@@ -206,3 +229,48 @@ If alerts are enabled, ensure outbound connectivity from the service host:
 
 - HTTP/HTTPS egress to the configured monitor endpoint.
 - SMTP egress to the configured mail host and port.
+
+## 12) Generate Release Notes Only
+
+Generate release notes for the current version/build from commit history:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Generate-ReleaseNotes.ps1 `
+  -VersionPrefix 2.1.0 `
+  -BuildNumber 20260702153045 `
+  -SourceRevisionId a1b2c3d
+```
+
+The script automatically searches for the previous release tag using `-TagPattern 'v[0-9]*'`.
+
+Optional range override:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Generate-ReleaseNotes.ps1 `
+  -FromRef v2.0.0 `
+  -ToRef HEAD `
+  -OutputPath .\artifacts\release-notes\RELEASE-NOTES-custom.md
+```
+
+## 13) Create and Push a Release Tag
+
+Use annotated semantic tags in `vMAJOR.MINOR.PATCH` format.
+
+```powershell
+git tag -a v2.1.0 -m "Release v2.1.0"
+git push origin v2.1.0
+```
+
+## 14) CI Build Metadata (GitHub Actions)
+
+If running from GitHub Actions, pass workflow values into build scripts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
+  -SelfContained `
+  -VersionPrefix 2.1.0 `
+  -BuildNumber $env:GITHUB_RUN_NUMBER `
+  -SourceRevisionId $env:GITHUB_SHA.Substring(0, 8)
+```

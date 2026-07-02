@@ -5,6 +5,11 @@ param(
     [string]$ProjectPath = '',
     [string]$ArtifactRoot = '',
     [string]$ArtifactName = '',
+    [string]$VersionPrefix = '',
+    [string]$BuildNumber = '',
+    [string]$SourceRevisionId = '',
+    [switch]$GenerateReleaseNotes,
+    [string]$ReleaseNotesOutputPath = '',
     [switch]$SelfContained,
     [switch]$SkipZip,
     [switch]$Clean
@@ -63,6 +68,28 @@ function Get-ShortCommit {
     return ''
 }
 
+function Get-VersionPrefixFromProps {
+    param([string]$RepositoryRoot)
+
+    $propsPath = Join-Path $RepositoryRoot 'Directory.Build.props'
+    if (-not (Test-Path -LiteralPath $propsPath)) {
+        return ''
+    }
+
+    try {
+        [xml]$xml = Get-Content -LiteralPath $propsPath -Raw
+        $value = $xml.Project.PropertyGroup.VersionPrefix | Select-Object -First 1
+        $text = if ($value -is [System.Xml.XmlNode]) { $value.InnerText } else { [string]$value }
+        if (-not [string]::IsNullOrWhiteSpace($text)) {
+            return $text
+        }
+    }
+    catch {
+    }
+
+    return ''
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $ProjectPath = Join-Path $repoRoot 'BeaconRelay.LpdReceiver\BeaconRelay.LpdReceiver.csproj'
@@ -78,6 +105,21 @@ if (-not (Test-Path -LiteralPath $ProjectPath)) {
 $selfContainedValue = if ($SelfContained.IsPresent) { 'true' } else { 'false' }
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $shortCommit = Get-ShortCommit
+
+if ([string]::IsNullOrWhiteSpace($VersionPrefix)) {
+    $VersionPrefix = Get-VersionPrefixFromProps -RepositoryRoot $repoRoot
+}
+if ([string]::IsNullOrWhiteSpace($VersionPrefix)) {
+    $VersionPrefix = '2.0.0'
+}
+
+if ([string]::IsNullOrWhiteSpace($BuildNumber)) {
+    $BuildNumber = Get-Date -Format 'yyyyMMddHHmmss'
+}
+
+if ([string]::IsNullOrWhiteSpace($SourceRevisionId)) {
+    $SourceRevisionId = if (-not [string]::IsNullOrWhiteSpace($shortCommit)) { $shortCommit } else { 'local' }
+}
 
 if ([string]::IsNullOrWhiteSpace($ArtifactName)) {
     $nameParts = @('BeaconRelay', $Configuration, $Runtime, $timestamp)
@@ -115,6 +157,9 @@ $publishArgs = @(
     '-c', $Configuration,
     '-r', $Runtime,
     '--self-contained', $selfContainedValue,
+    '/p:VersionPrefix=' + $VersionPrefix,
+    '/p:BuildNumber=' + $BuildNumber,
+    '/p:SourceRevisionId=' + $SourceRevisionId,
     '-o', $publishDir
 )
 
@@ -143,6 +188,26 @@ $hashLines = Get-ChildItem -LiteralPath $artifactDir -File -Recurse |
     }
 Set-Content -LiteralPath $checksumPath -Value $hashLines -Encoding UTF8
 
+if ($GenerateReleaseNotes) {
+    Write-Step 'Generating release notes'
+    $releaseNotesScriptPath = Join-Path $repoRoot 'deploy\Generate-ReleaseNotes.ps1'
+    if (-not (Test-Path -LiteralPath $releaseNotesScriptPath)) {
+        throw "Release notes script not found: $releaseNotesScriptPath"
+    }
+
+    $releaseNotesTargetPath = $ReleaseNotesOutputPath
+    if ([string]::IsNullOrWhiteSpace($releaseNotesTargetPath)) {
+        $releaseNotesTargetPath = Join-Path $artifactDir 'RELEASE-NOTES.md'
+    }
+
+    if ($PSCmdlet.ShouldProcess($releaseNotesTargetPath, 'Generate release notes markdown')) {
+        & $releaseNotesScriptPath -VersionPrefix $VersionPrefix -BuildNumber $BuildNumber -SourceRevisionId $SourceRevisionId -OutputPath $releaseNotesTargetPath
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Release note generation failed.'
+        }
+    }
+}
+
 if (-not $SkipZip) {
     Write-Step 'Creating compressed artifact archive'
     if (Test-Path -LiteralPath $zipPath) {
@@ -161,6 +226,9 @@ Write-Host "Artifact Directory: $artifactDir"
 if (-not $SkipZip) {
     Write-Host "Artifact Zip:       $zipPath"
 }
+Write-Host "Version:            $VersionPrefix"
+Write-Host "Build:              $BuildNumber"
+Write-Host "Source Revision:    $SourceRevisionId"
 Write-Host ""
 Write-Host 'Deploy on target machine with:' -ForegroundColor Yellow
 Write-Host '  1) Copy artifact contents so publish/ and deploy/ are under your AppRoot'

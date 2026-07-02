@@ -1,5 +1,6 @@
 using BeaconRelay.LpdReceiver.Data;
 using BeaconRelay.LpdReceiver.Options;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -38,6 +39,15 @@ public sealed class DeliveryDispatcherService(
             }
             catch (Exception ex)
             {
+                if (IsSqliteDatabaseOrDiskFull(ex))
+                {
+                    const string pauseReason = "Delivery paused automatically: SQLite reported database or disk is full (SQLITE_FULL). Free disk space or increase storage quota, then resume delivery from the management API.";
+                    pauseState.Pause(null, pauseReason);
+                    logger.LogCritical(ex, "Delivery dispatcher paused because SQLite returned SQLITE_FULL. Manual resume required after storage remediation.");
+                    await Task.Delay(PollInterval, stoppingToken);
+                    continue;
+                }
+
                 logger.LogError(ex, "Delivery dispatcher loop failed.");
                 await Task.Delay(PollInterval, stoppingToken);
             }
@@ -204,5 +214,33 @@ public sealed class DeliveryDispatcherService(
             : Math.Min(maxSeconds, baseSeconds * Math.Pow(2, Math.Max(0, attemptCount - 1)));
 
         return TimeSpan.FromSeconds(seconds);
+    }
+
+    internal static bool IsSqliteDatabaseOrDiskFull(Exception exception)
+    {
+        var sqliteException = FindSqliteException(exception);
+        if (sqliteException is not null)
+        {
+            return sqliteException.SqliteErrorCode == 13
+                || sqliteException.SqliteExtendedErrorCode == 13
+                || sqliteException.Message.Contains("database or disk is full", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return exception.Message.Contains("database or disk is full", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static SqliteException? FindSqliteException(Exception exception)
+    {
+        if (exception is SqliteException sqliteException)
+        {
+            return sqliteException;
+        }
+
+        if (exception.InnerException is not null)
+        {
+            return FindSqliteException(exception.InnerException);
+        }
+
+        return null;
     }
 }

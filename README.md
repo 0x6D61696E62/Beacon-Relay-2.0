@@ -111,6 +111,7 @@ Two deployment scripts are provided under `deploy/`:
 
 - `Deploy-BeaconRelay.ps1`: installs/upgrades/removes the service and IIS proxy on the target machine.
 - `Build-BeaconRelayArtifact.ps1`: builds a portable artifact (`publish/`, deploy scripts, checksums, optional zip) for target machines.
+- `Generate-ReleaseNotes.ps1`: generates release notes from Git commit history for the current version/build.
 
 See `deploy/DEPLOY-EXAMPLES.md` for scenario-based commands (new install, artifact install, upgrade, SQLCipher conversion, status, and remove).
 
@@ -124,6 +125,86 @@ powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 
 ```
 
 This creates an artifact folder under `artifacts/` and, by default, a `.zip` archive.
+
+### Versioning and build metadata
+
+The repository now uses centralized version properties in `Directory.Build.props`.
+
+- `VersionPrefix` is the human-managed product version (default `2.0.0`).
+- `BuildNumber` changes each build (default UTC timestamp `yyyyMMddHHmmss`).
+- `SourceRevisionId` is the source change identifier (typically short git SHA).
+
+During build/publish the app is stamped with:
+
+- `Version`: `VersionPrefix-build.BuildNumber`
+- `InformationalVersion`: `VersionPrefix+build.BuildNumber.sha.SourceRevisionId`
+
+Example build with explicit values:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
+  -SelfContained `
+  -VersionPrefix 2.1.0 `
+  -BuildNumber 20260702153045 `
+  -SourceRevisionId a1b2c3d
+```
+
+The admin UI header now displays the running version/build/revision for quick verification.
+
+### Release tag convention
+
+Use annotated release tags in this format:
+
+- `vMAJOR.MINOR.PATCH` (example: `v2.1.0`)
+
+Tag and push a release:
+
+```powershell
+git tag -a v2.1.0 -m "Release v2.1.0"
+git push origin v2.1.0
+```
+
+Release note generation defaults to the previous tag matching `v[0-9]*`.
+
+### CI build metadata
+
+CI should pass explicit values for build identity:
+
+- `BuildNumber`: repository run/build number (changes every CI build)
+- `SourceRevisionId`: commit SHA (short form preferred)
+
+The included GitHub Actions workflow in `.github/workflows/ci.yml` stamps these values into build/test/artifact commands.
+
+### Generate release notes for the current version
+
+Use the release-note generator to capture all commits since the previous tag (or from initial history if no tag exists):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Generate-ReleaseNotes.ps1 `
+  -VersionPrefix 2.1.0 `
+  -BuildNumber 20260702153045 `
+  -SourceRevisionId a1b2c3d
+```
+
+You can override tag matching if needed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Generate-ReleaseNotes.ps1 `
+  -TagPattern 'v[0-9]*' `
+  -OutputPath .\artifacts\release-notes\RELEASE-NOTES.md
+```
+
+You can also generate release notes automatically while building an artifact:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 `
+  -Configuration Release `
+  -Runtime win-x64 `
+  -SelfContained `
+  -GenerateReleaseNotes
+```
 
 ### Deploy to test machine (from artifact)
 
