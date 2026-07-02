@@ -112,6 +112,7 @@ Two deployment scripts are provided under `deploy/`:
 - `Deploy-BeaconRelay.ps1`: installs/upgrades/removes the service and IIS proxy on the target machine.
 - `Build-BeaconRelayArtifact.ps1`: builds a portable artifact (`publish/`, deploy scripts, checksums, optional zip) for target machines.
 - `Generate-ReleaseNotes.ps1`: generates release notes from Git commit history for the current version/build.
+- `Invoke-ReleaseBuild.ps1`: creates a release tag and runs artifact + release notes in one command.
 
 See `deploy/DEPLOY-EXAMPLES.md` for scenario-based commands (new install, artifact install, upgrade, SQLCipher conversion, status, and remove).
 
@@ -205,6 +206,29 @@ powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 
   -SelfContained `
   -GenerateReleaseNotes
 ```
+
+### One-command release flow
+
+Use the release helper to create tag + artifact + release notes in one step:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Invoke-ReleaseBuild.ps1 `
+  -VersionPrefix 2.1.0 `
+  -SelfContained `
+  -PushTag
+```
+
+Behavior summary:
+
+- Creates annotated tag `v<VersionPrefix>` (unless `-SkipTagCreation` is used).
+- Optionally pushes the tag when `-PushTag` is set.
+- Runs `Build-BeaconRelayArtifact.ps1` with `-GenerateReleaseNotes`.
+- Stamps the build with `VersionPrefix`, `BuildNumber`, and `SourceRevisionId`.
+
+Safety defaults:
+
+- Fails on dirty working tree unless `-AllowDirtyWorkingTree` is used.
+- Fails if tag exists unless `-ForceTag` is specified.
 
 ### Deploy to test machine (from artifact)
 

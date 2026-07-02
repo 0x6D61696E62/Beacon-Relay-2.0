@@ -7,6 +7,7 @@ Primary scripts:
 - `Deploy-BeaconRelay.ps1` (install/upgrade/remove/status)
 - `Build-BeaconRelayArtifact.ps1` (build portable deployment artifact)
 - `Generate-ReleaseNotes.ps1` (generate release notes from Git commits)
+- `Invoke-ReleaseBuild.ps1` (create release tag + build artifact + release notes)
 
 ## 1) Build Artifact (Build Machine)
 
@@ -273,4 +274,33 @@ powershell -ExecutionPolicy Bypass -File .\deploy\Build-BeaconRelayArtifact.ps1 
   -VersionPrefix 2.1.0 `
   -BuildNumber $env:GITHUB_RUN_NUMBER `
   -SourceRevisionId $env:GITHUB_SHA.Substring(0, 8)
+```
+
+## 15) One-Command Release (Tag + Artifact + Notes)
+
+Create annotated tag `v2.1.0`, push it, and build release artifact with release notes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Invoke-ReleaseBuild.ps1 `
+  -VersionPrefix 2.1.0 `
+  -SelfContained `
+  -PushTag
+```
+
+Preview actions without making changes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Invoke-ReleaseBuild.ps1 `
+  -VersionPrefix 2.1.0 `
+  -SelfContained `
+  -WhatIf
+```
+
+If the tag already exists and must be recreated locally:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\Invoke-ReleaseBuild.ps1 `
+  -VersionPrefix 2.1.0 `
+  -SelfContained `
+  -ForceTag
 ```

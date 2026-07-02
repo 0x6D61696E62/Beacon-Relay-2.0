@@ -151,15 +151,31 @@ Ensure-Directory -Path $publishDir
 Ensure-Directory -Path $deployDir
 
 Write-Step 'Publishing application for deployment artifact'
+$restoreArgs = @(
+    'restore',
+    $ProjectPath,
+    '-r', $Runtime,
+    ('-p:VersionPrefix={0}' -f $VersionPrefix),
+    ('-p:BuildNumber={0}' -f $BuildNumber),
+    ('-p:SourceRevisionId={0}' -f $SourceRevisionId)
+)
+
+if ($PSCmdlet.ShouldProcess($ProjectPath, 'dotnet restore for target runtime')) {
+    & dotnet @restoreArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw 'dotnet restore failed while creating artifact.'
+    }
+}
+
 $publishArgs = @(
     'publish',
     $ProjectPath,
     '-c', $Configuration,
     '-r', $Runtime,
     '--self-contained', $selfContainedValue,
-    '/p:VersionPrefix=' + $VersionPrefix,
-    '/p:BuildNumber=' + $BuildNumber,
-    '/p:SourceRevisionId=' + $SourceRevisionId,
+    ('-p:VersionPrefix={0}' -f $VersionPrefix),
+    ('-p:BuildNumber={0}' -f $BuildNumber),
+    ('-p:SourceRevisionId={0}' -f $SourceRevisionId),
     '-o', $publishDir
 )
 
@@ -178,15 +194,20 @@ Get-ChildItem -LiteralPath $deployScriptSource -File -Filter '*.ps1' | ForEach-O
 
 Write-Step 'Generating SHA-256 checksums'
 $checksumPath = Join-Path $artifactDir 'checksums.sha256'
-$hashLines = Get-ChildItem -LiteralPath $artifactDir -File -Recurse |
-    Where-Object { $_.FullName -ne $checksumPath } |
-    Sort-Object FullName |
-    ForEach-Object {
-        $relative = Get-RelativePathCompat -BasePath $artifactDir -ChildPath $_.FullName
-        $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-        "{0} *{1}" -f $hash, $relative.Replace('\\', '/')
-    }
-Set-Content -LiteralPath $checksumPath -Value $hashLines -Encoding UTF8
+if (-not (Test-Path -LiteralPath $artifactDir)) {
+    Write-Host '  Artifact directory does not exist (likely -WhatIf). Skipping checksum generation.' -ForegroundColor DarkGray
+}
+else {
+    $hashLines = Get-ChildItem -LiteralPath $artifactDir -File -Recurse |
+        Where-Object { $_.FullName -ne $checksumPath } |
+        Sort-Object FullName |
+        ForEach-Object {
+            $relative = Get-RelativePathCompat -BasePath $artifactDir -ChildPath $_.FullName
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "{0} *{1}" -f $hash, $relative.Replace('\\', '/')
+        }
+    Set-Content -LiteralPath $checksumPath -Value $hashLines -Encoding UTF8
+}
 
 if ($GenerateReleaseNotes) {
     Write-Step 'Generating release notes'
