@@ -1,0 +1,4057 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beacon Relay Admin</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    :root {
+      --menu-width: 286px;
+      --header-offset: 96px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(85% 120% at -10% -20%, #c6d8ff 0%, transparent 58%),
+        radial-gradient(90% 110% at 110% -10%, #caefe8 0%, transparent 48%),
+        linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(216, 224, 235, 0.9);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(237, 244, 255, 0.9) 100%);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      width: 100%;
+    }
+      .label-help-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        max-width: 100%;
+      }
+      .label-help-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 1px solid #9ab6de;
+        background: #eef4ff;
+        color: #234f92;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .label-help-icon:hover {
+        background: #dce9ff;
+        border-color: #7ea2d8;
+      }
+      .label-help-icon:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(15, 92, 192, 0.18);
+        border-color: var(--accent);
+      }
+      .label-help-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: min(360px, 76vw);
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #b9d0ef;
+        background: #f8fbff;
+        color: #1f3552;
+        box-shadow: 0 10px 28px rgba(18, 52, 95, 0.18);
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.45;
+        z-index: 40;
+        display: none;
+        text-transform: none;
+        letter-spacing: normal;
+        white-space: normal;
+      }
+      .label-help-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(94, 121, 158, 0.18);
+      }
+      .label-help-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #5c718e;
+        font-weight: 800;
+      }
+      .label-help-role {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 74px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid #b9d0ef;
+        background: #eef5ff;
+        color: #355d93;
+      }
+      .label-help-body {
+        display: block;
+      }
+      .label-help-popover.open {
+        display: block;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-icon {
+        border-color: #79c9ad;
+        background: #eaf9f2;
+        color: #1f6e52;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-popover {
+        border-color: #9ed7c2;
+        background: #f4fdf8;
+        color: #184f3b;
+      }
+      .label-help-wrap[data-role="admin"] .label-help-role {
+        border-color: #79c9ad;
+        background: #eaf9f2;
+        color: #1f6e52;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-icon {
+        border-color: #8cc7d9;
+        background: #ebf8fc;
+        color: #2f6578;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-popover {
+        border-color: #a9d9e6;
+        background: #f5fcff;
+        color: #214a59;
+      }
+      .label-help-wrap[data-role="settings"] .label-help-role {
+        border-color: #8cc7d9;
+        background: #ebf8fc;
+        color: #2f6578;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-icon {
+        border-color: #b6c0cc;
+        background: #f4f6f9;
+        color: #526172;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-popover {
+        border-color: #c8d1db;
+        background: #f9fafc;
+        color: #3f4f61;
+      }
+      .label-help-wrap[data-role="readonly"] .label-help-role {
+        border-color: #b6c0cc;
+        background: #f4f6f9;
+        color: #526172;
+      }
+
+    .header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .menu-toggle {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f8fd;
+      border-color: #cfdced;
+      flex-shrink: 0;
+    }
+
+    .menu-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .menu-toggle.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    h1, h2, h3 { margin: 0; }
+
+    h1 {
+      font-size: clamp(1.4rem, 1.05rem + 1.2vw, 2.1rem);
+      letter-spacing: -0.02em;
+      font-weight: 800;
+    }
+
+    h2 {
+      letter-spacing: -0.01em;
+      font-weight: 700;
+    }
+
+    main {
+      margin: 0;
+      padding: 18px;
+      transition: margin-left 220ms ease;
+    }
+
+    .layout {
+      display: block;
+    }
+
+    body.read-only .side-nav,
+    body.read-only .menu-toggle,
+    body.read-only .menu-overlay {
+      display: none;
+    }
+
+    body.read-only main {
+      margin-left: 0;
+    }
+
+    body.read-only .content-area {
+      max-width: none;
+    }
+
+    body.menu-expanded main {
+      margin-left: var(--menu-width);
+    }
+
+    body.menu-collapsed main {
+      margin-left: 0;
+    }
+
+    .side-nav {
+      background: var(--card);
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      padding: 20px 14px;
+      position: fixed;
+      top: var(--header-offset);
+      left: 0;
+      bottom: 0;
+      width: var(--menu-width);
+      z-index: 30;
+      overflow: hidden;
+      transition: transform 220ms ease;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 251, 255, 0.95) 100%);
+      height: calc(100vh - var(--header-offset));
+    }
+
+    body.menu-collapsed .side-nav {
+      transform: translateX(calc(-1 * var(--menu-width) - 8px));
+    }
+
+    .side-nav::before {
+      content: "";
+      display: block;
+      height: 4px;
+      margin: -20px -14px 12px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+    }
+
+    .side-nav h2 {
+      font-size: 0.92rem;
+      margin: 0 0 5px;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .side-nav .hint {
+      margin-bottom: 12px;
+      color: var(--ink-soft);
+    }
+
+    .nav-links {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-links button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-align: left;
+      width: 100%;
+      font-weight: 600;
+      background: #f5f8fd;
+      border: 1px solid #dce5f2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .nav-links button:hover {
+      transform: translateY(-1px);
+      border-color: #bdcce2;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-links button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(15, 92, 192, 0.35);
+    }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.88;
+    }
+
+    .nav-links button.active .nav-icon {
+      opacity: 1;
+    }
+
+    .nav-label {
+      display: inline-block;
+    }
+
+    .content-area {
+      display: grid;
+      gap: 18px;
+      max-width: 1420px;
+    }
+
+    .view-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #cfe0f5;
+      background: #edf4ff;
+      color: #355985;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .view-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.75;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: var(--header-offset);
+      background: rgba(12, 24, 42, 0.36);
+      backdrop-filter: blur(1px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 20;
+    }
+
+    @media (max-width: 980px) {
+      body.menu-expanded .menu-overlay {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    .view-section {
+      display: none;
+      gap: 18px;
+      animation: fade-slide-in 260ms ease;
+    }
+
+    .view-section.active {
+      display: grid;
+    }
+
+    @keyframes fade-slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 1000px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .view-section[data-view="delivery"] .card {
+      overflow: visible;
+    }
+
+    .card h2 {
+      padding: 14px 16px;
+      font-size: 1.02rem;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #f7faff 0%, #f3fbf9 100%);
+    }
+
+    .body { padding: 14px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: end;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar {
+      align-items: end;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > label {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 150px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-status,
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-page-size,
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-date {
+      flex: 0 0 170px;
+      min-width: 170px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-search {
+      flex: 1 1 340px;
+      min-width: 260px;
+    }
+
+    .view-section[data-view="delivery"] .queue-filters-toolbar > #refreshQueue {
+      align-self: end;
+    }
+
+    @media (max-width: 1080px) {
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-status,
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-page-size,
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-date {
+        flex: 1 1 180px;
+        min-width: 160px;
+      }
+
+      .view-section[data-view="delivery"] .queue-filters-toolbar > .queue-filter-search {
+        flex: 1 1 280px;
+        min-width: 220px;
+      }
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar {
+      align-items: center;
+      gap: 8px;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > label {
+      margin-bottom: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: auto;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > label input {
+      width: 84px;
+    }
+
+    .view-section[data-view="delivery"] .queue-pagination-toolbar > #pageSummary {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 4px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, border-color 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+    }
+
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.refresh { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
+    button.secondary { background: var(--accent-3); color: #fff; border-color: var(--accent-3); }
+
+    button.danger {
+      background: #fff2f2;
+      color: var(--bad);
+      border-color: #efc3c3;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: #fff;
+      color: var(--ink);
+      font-family: inherit;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    input:focus,
+    select:focus,
+    button:focus-visible {
+      outline: none;
+      border-color: #79a8e8;
+      box-shadow: 0 0 0 3px rgba(15, 92, 192, 0.16);
+    }
+
+    label {
+      display: block;
+      font-size: 0.81rem;
+      margin-bottom: 8px;
+      min-width: 120px;
+      color: var(--ink-soft);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .row, .row-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 760px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f9fd;
+      color: #49607d;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    tr:hover td { background: #f8fbff; }
+
+    .queue-row {
+      cursor: pointer;
+    }
+
+    .queue-row.selected td {
+      background: #e7f0ff;
+    }
+
+    .rule-color-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rule-color-chip {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: #f7f9fc;
+    }
+
+    .ok { color: var(--ok); border-color: var(--ok); }
+    .bad { color: var(--bad); border-color: var(--bad); }
+    .warn { color: var(--warn); border-color: var(--warn); }
+
+    .muted { color: var(--ink-soft); }
+
+    .error {
+      margin-top: 8px;
+      color: var(--bad);
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    .hint {
+      font-size: 0.83rem;
+      color: var(--ink-soft);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .details-panel {
+      background: linear-gradient(165deg, #fbfdff 0%, #f4faf9 100%);
+      border: 1px solid #d8e8e7;
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    @media (min-width: 1000px) {
+      .delivery-grid-anchor {
+        position: sticky;
+        top: calc(var(--header-offset) + 12px);
+        align-self: start;
+        max-height: calc(100vh - var(--header-offset) - 24px);
+        overflow: auto;
+      }
+
+      .details-panel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #authStatus {
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.8rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #eef5ff;
+      border: 1px solid #c9dbf5;
+      color: #365a8c;
+    }
+
+    @media (max-width: 720px) {
+      header { padding: 16px; }
+      main { padding: 12px; }
+      .toolbar > * { width: 100%; }
+      .toolbar button { width: 100%; }
+    }
+
+    @media (max-width: 980px) {
+      body.menu-expanded header,
+      body.menu-expanded main {
+        margin-left: 0;
+      }
+
+      .side-nav {
+        width: min(86vw, 320px);
+      }
+
+      body.menu-collapsed .side-nav {
+        transform: translateX(-110%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+
+    /* ── Status page ─────────────────────────────────────────────── */
+    .status-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .status-layout-toolbar {
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .status-layout-toolbar .hint {
+      margin: 0;
+    }
+
+    .status-layout-locked .panel-drag-handle,
+    .status-layout-locked .panel-resize-handle {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-panel {
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-panel h2 {
+      padding-right: 118px;
+      user-select: none;
+    }
+
+    .status-panel .body {
+      flex: 1 1 auto;
+      overflow: auto;
+    }
+
+    .status-panel.dragging {
+      outline: 2px dashed #5b87c4;
+      outline-offset: 1px;
+      box-shadow: 0 0 0 4px rgba(91, 135, 196, 0.16);
+    }
+
+    .panel-controls {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 3;
+    }
+
+    .panel-drag-handle {
+      border-radius: 8px;
+      border: 1px solid #c5d6ed;
+      background: #edf4ff;
+      color: #27476f;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .panel-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .panel-resize-handle {
+      position: absolute;
+      right: 7px;
+      bottom: 7px;
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      border: 1px solid #b7cae6;
+      background:
+        linear-gradient(135deg, transparent 0%, transparent 44%, #8da8cd 46%, #8da8cd 54%, transparent 56%, transparent 100%),
+        #eef3fc;
+      cursor: nwse-resize;
+      z-index: 4;
+    }
+
+    @media (min-width: 1000px) {
+      .status-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-auto-rows: 88px;
+      }
+
+      .status-grid .card.card-wide {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 999px) {
+      .status-panel {
+        min-height: 0;
+      }
+
+      .status-panel .panel-controls,
+      .status-panel .panel-resize-handle {
+        display: none;
+      }
+    }
+
+    .status-grid .card.card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table-wrap table {
+      min-width: 680px;
+    }
+
+    .stat-strip {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+
+    .stat-box {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .stat-box .count {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .stat-box .label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .stat-box.ok   .count { color: var(--ok); }
+    .stat-box.bad  .count { color: var(--bad); }
+    .stat-box.warn .count { color: var(--warn); }
+    .stat-box.dim  .count { color: var(--ink-soft); }
+
+    .dispatcher-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }
+
+    .dispatcher-badge.running {
+      background: #d3f4e7;
+      color: var(--ok);
+    }
+
+    .dispatcher-badge.paused {
+      background: #fdeec9;
+      color: var(--warn);
+    }
+
+    .dispatcher-badge .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .pause-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 12px;
+    }
+
+    .pause-row label { flex: 1 1 160px; }
+
+    .topology-summary {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      margin-bottom: 12px;
+    }
+
+    .topology-summary .stat-box {
+      text-align: left;
+      padding: 12px 14px;
+    }
+
+    .topology-summary .stat-box .count {
+      font-size: 1.45rem;
+    }
+
+    .topology-rule-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .topology-rule-card {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      border-left-width: 6px;
+      background: #ffffff;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .topology-rule-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(150, 171, 200, 0.22);
+      background: linear-gradient(90deg, rgba(246, 250, 255, 0.96) 0%, rgba(240, 250, 247, 0.92) 100%);
+    }
+
+    .topology-rule-title {
+      font-size: 0.99rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topology-rule-meta {
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .topology-children {
+      padding: 11px 12px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .topology-item {
+      border-radius: 10px;
+      border: 1px solid #d8e3f1;
+      border-left-width: 4px;
+      background: #f9fcff;
+      padding: 9px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topology-item-id {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #4f6480;
+      border-radius: 999px;
+      border: 1px solid #c8d8ec;
+      padding: 2px 8px;
+      background: #edf4ff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .topology-item-name {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #20324a;
+      word-break: break-word;
+    }
+
+    .topology-item-empty {
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      padding: 4px 2px;
+      font-weight: 600;
+    }
+
+    .jump-toolbar {
+      margin-bottom: 12px;
+      align-items: end;
+    }
+
+    .jump-toolbar > label {
+      flex: 1 1 380px;
+      margin-bottom: 0;
+    }
+
+    .jump-toolbar > button {
+      flex: 0 0 auto;
+    }
+
+    .topology-search {
+      margin-bottom: 12px;
+    }
+
+    .topology-search input {
+      max-width: 520px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <button id="menuToggle" class="menu-toggle" aria-label="Toggle settings menu" title="Toggle settings menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 6h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 18h16"></path>
+        </svg>
+      </button>
+      <div>
+        <h1>Beacon Relay Admin</h1>
+        <div class="muted">Operational control center for routing rules, destination policy, and delivery execution.</div>
+        <div id="activeViewChip" class="view-chip">System Status</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div id="authStatus" class="muted"></div>
+      <div id="appVersion" class="muted"></div>
+      <button id="logoutButton" class="secondary">Sign Out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="menuOverlay" class="menu-overlay"></div>
+    <div class="layout">
+      <aside class="side-nav">
+        <h2>Settings Menu</h2>
+        <div class="hint">Select a module to configure and save.</div>
+        <div class="nav-links">
+          <button class="active" data-view-target="status">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h6"></path><path d="M4 19h10"></path><path d="M14 5h6"></path><path d="M14 11h6"></path><path d="M11 17h2"></path><rect x="4" y="4" width="6" height="7" rx="1"></rect><rect x="14" y="13" width="6" height="7" rx="1"></rect></svg>
+            <span class="nav-label">System Status</span>
+          </button>
+          <button data-view-target="retention">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 14h10l1-14"></path><path d="M10 10v7"></path><path d="M14 10v7"></path></svg>
+            <span class="nav-label">Retention &amp; Purge</span>
+          </button>
+          <button data-view-target="rules">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14"></path><path d="M5 12h10"></path><path d="M5 18h14"></path><circle cx="18" cy="12" r="1"></circle></svg>
+            <span class="nav-label">Rules and Matching</span>
+          </button>
+          <button data-view-target="folder">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h6l2 2h10v9H3z"></path><path d="M3 8V5h7l2 2"></path></svg>
+            <span class="nav-label">Folder Routing</span>
+          </button>
+          <button data-view-target="lpd">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"></path><path d="M13 7l5 5-5 5"></path></svg>
+            <span class="nav-label">LPD Forwarding</span>
+          </button>
+          <button data-view-target="topology">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M8 6h8"></path><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M8 18h8"></path></svg>
+            <span class="nav-label">Rule Navigator</span>
+          </button>
+          <button data-view-target="delivery">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h3l4 4v3h-7z"></path><circle cx="8" cy="19" r="1"></circle><circle cx="18" cy="19" r="1"></circle></svg>
+            <span class="nav-label">Delivery Queue</span>
+          </button>
+          <button data-view-target="alerts" data-access="admin">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"></path><path d="M5.6 6.6l2.1 2.1"></path><path d="M3 12h3"></path><path d="M5.6 17.4l2.1-2.1"></path><path d="M12 18v3"></path><path d="M18.4 17.4l-2.1-2.1"></path><path d="M21 12h-3"></path><path d="M18.4 6.6l-2.1 2.1"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <span class="nav-label">Alerts</span>
+          </button>
+          <button data-view-target="administrators" data-access="admin">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3 19c0-3.2 2.6-5.8 5.8-5.8h0.4"></path><circle cx="17" cy="10" r="2.5"></circle><path d="M14.5 19.5c0-2.6 2.1-4.7 4.7-4.7h0.3"></path></svg>
+            <span class="nav-label">Administrators</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="content-area">
+        <section class="view-section" data-view="rules" data-access="settings">
+          <section class="card">
+            <h2>Rules</h2>
+            <div class="body">
+              <div class="row-3">
+                <label>Rule Name
+                  <input id="ruleName" value="" placeholder="Enter a unique rule name">
+                </label>
+                <label>Priority
+                  <input id="rulePriority" type="number" value="100" min="0">
+                </label>
+                <label>Queue Match Type
+                  <select id="queueType">
+                    <option>Exact</option>
+                    <option>Wildcard</option>
+                    <option>Regex</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Queue Match Value
+                  <input id="queueValue" value="main">
+                </label>
+                <label>Match Operator
+                  <select id="matchOperator">
+                    <option>And</option>
+                    <option>Or</option>
+                  </select>
+                </label>
+                <label>Status
+                  <select id="ruleEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Rule Highlight Color
+                  <div class="rule-color-row">
+                    <input id="ruleColor" type="color" value="#0F5CC0" style="width:74px; padding:4px 6px;">
+                    <span class="muted">Used to highlight this rule in rule and queue entries.</span>
+                  </div>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveRule">Save Rule</button>
+                <button id="resetRule">Reset Form</button>
+                <button class="refresh" id="refreshRules">Refresh Rules</button>
+                <button id="saveRuleOrder">Save Current Rule Order</button>
+              </div>
+              <div class="hint">Use Up and Down to reorder rules before saving the new priority order.</div>
+              <div class="error" id="ruleError"></div>
+              <table>
+                <thead>
+                  <tr><th>Priority</th><th>Name</th><th>Match</th><th>Destinations</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="rulesBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="folder" data-access="settings">
+          <section class="card">
+            <h2>Folder Destinations</h2>
+            <div class="body">
+              <div class="row">
+                <label>Rule
+                  <select id="folderRuleId"></select>
+                </label>
+                <label>Destination Order
+                  <input id="folderOrder" type="number" value="1" min="0">
+                </label>
+              </div>
+              <div class="row">
+                <label>Root Folder
+                  <input id="folderRoot" value="data/routed">
+                </label>
+                <label>Subfolder Pattern Type
+                  <select id="folderPatternType">
+                    <option>DotNetDateFormat</option>
+                    <option>TokenTemplate</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Subfolder Pattern
+                  <input id="folderPattern" value="yyyy/MM/dd">
+                </label>
+                <label>Duplicate Policy
+                  <select id="folderDuplicatePolicy">
+                    <option>Overwrite</option>
+                    <option>Fail</option>
+                    <option selected>UniqueName</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Unique Name Mode
+                  <select id="folderUniqueNameMode">
+                    <option selected>Counter</option>
+                    <option>Timestamp</option>
+                    <option>Guid</option>
+                    <option>HashFragment</option>
+                  </select>
+                </label>
+                <label>Retry Policy
+                  <select id="folderRetryPolicyId"></select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Unique Affix
+                  <input id="folderUniqueAffix" placeholder="copy">
+                </label>
+                <label>Retry On Failure
+                  <select id="folderRetryOnFailure">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Enabled
+                  <select id="folderEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveFolder">Save Folder Destination</button>
+                <button id="resetFolder">Reset Form</button>
+              </div>
+              <div class="error" id="folderError"></div>
+              <table>
+                <thead>
+                  <tr><th>Rule</th><th>Root</th><th>Pattern</th><th>Retry</th><th>Action</th></tr>
+                </thead>
+                <tbody id="folderBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="lpd" data-access="settings">
+          <section class="card">
+            <h2>LPD Forward Destinations</h2>
+            <div class="body">
+              <div class="hint">Manage outbound LPD forwarding targets and retry behavior.</div>
+              <div class="row">
+                <label>Rule
+                  <select id="forwardRuleId"></select>
+                </label>
+                <label>Destination Order
+                  <input id="forwardOrder" type="number" value="1" min="0">
+                </label>
+              </div>
+              <div class="row">
+                <label>Host
+                  <input id="forwardHost" value="127.0.0.1">
+                </label>
+                <label>Port
+                  <input id="forwardPort" type="number" value="515" min="1" max="65535">
+                </label>
+              </div>
+              <div class="row">
+                <label>Outbound Queue Name
+                  <input id="forwardQueue" value="remote-queue">
+                </label>
+                <label>Compression
+                  <select id="forwardCompression">
+                    <option>None</option>
+                    <option>ZipArchive</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Payload Mode
+                  <select id="forwardPayloadMode">
+                    <option>StoredFile</option>
+                    <option>OriginalFile</option>
+                  </select>
+                </label>
+                <label>Retry Policy
+                  <select id="forwardRetryPolicyId"></select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Enabled
+                  <select id="forwardEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveForward">Save Forward Destination</button>
+                <button id="resetForward">Reset Form</button>
+              </div>
+              <div class="error" id="forwardError"></div>
+              <table>
+                <thead>
+                  <tr><th>Rule</th><th>Target</th><th>Queue</th><th>Retry</th><th>Action</th></tr>
+                </thead>
+                <tbody id="forwardBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="topology">
+          <section class="card">
+            <h2>Rules, Folders, and LPD Map</h2>
+            <div class="body">
+              <div class="hint">Each rule is color-coded and grouped with its folder and LPD targets. Pick any list item and jump directly to its settings editor.</div>
+              <div class="topology-search">
+                <label>Search Rule / Folder / LPD
+                  <input id="topologySearch" placeholder="Try: lab-printer, data/routed, 10.0.0.15, remote-queue">
+                </label>
+              </div>
+              <div class="topology-summary" id="topologySummary">
+                <div class="stat-box dim"><div class="count">0</div><div class="label">Rules</div></div>
+                <div class="stat-box dim"><div class="count">0</div><div class="label">Folder Destinations</div></div>
+                <div class="stat-box dim"><div class="count">0</div><div class="label">LPD Destinations</div></div>
+              </div>
+              <div class="toolbar jump-toolbar">
+                <label>Select List Item
+                  <select id="jumpItemSelect"></select>
+                </label>
+                <button class="primary" id="jumpToItem">Jump To Settings</button>
+              </div>
+              <div class="error" id="topologyError"></div>
+              <div id="topologyRuleList" class="topology-rule-list"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="delivery">
+          <section class="card">
+            <h2>Delivery Queue</h2>
+            <div class="body">
+              <div class="toolbar queue-filters-toolbar">
+                <label class="queue-filter-status">Status
+                  <select id="queueStatusFilter">
+                    <option value="All">All</option>
+                    <option>Pending</option>
+                    <option>InProgress</option>
+                    <option>RetryScheduled</option>
+                    <option>Succeeded</option>
+                    <option>Failed</option>
+                    <option>Canceled</option>
+                  </select>
+                </label>
+                <label class="queue-filter-search">Search
+                  <input id="queueSearch" placeholder="queue, file, destination, error">
+                </label>
+                <label class="queue-filter-date">Start Date
+                  <input id="queueStartDate" type="date">
+                </label>
+                <label class="queue-filter-date">End Date
+                  <input id="queueEndDate" type="date">
+                </label>
+                <label class="queue-filter-page-size">Page Size
+                  <select id="queuePageSize">
+                    <option>10</option>
+                    <option selected>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                  </select>
+                </label>
+                <button class="refresh" id="refreshQueue">Refresh Queue</button>
+              </div>
+              <div class="grid-2">
+                <div>
+                  <table>
+                    <thead>
+                      <tr><th>Status</th><th>Rule + Destination</th><th>Attempts</th><th>Next</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="queueBody"></tbody>
+                  </table>
+                  <div class="toolbar queue-pagination-toolbar">
+                    <button id="firstPage">First</button>
+                    <button id="prevPage">Previous</button>
+                    <div id="pageSummary" class="muted"></div>
+                    <label>Jump to
+                      <input id="queuePageInput" type="number" min="1" value="1">
+                    </label>
+                    <button id="jumpPage">Go</button>
+                    <button id="nextPage">Next</button>
+                    <button id="lastPage">Last</button>
+                  </div>
+                  <div class="error" id="queueError"></div>
+                </div>
+                <div class="delivery-grid-anchor">
+                <div class="details-panel">
+                  <h3>Selected Work Item</h3>
+                  <div class="hint">Choose Details on a work item to inspect attempt history.</div>
+                  <div id="queueDetails" class="muted">No work item selected.</div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="retention" data-access="settings">
+          <section class="card">
+            <h2>Retention Cleanup Settings</h2>
+            <div class="body">
+              <div class="row-3">
+                <label>Enabled
+                  <select id="retentionEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Retention Days
+                  <input id="retentionDays" type="number" min="1" value="30">
+                </label>
+                <label>Run Interval (minutes)
+                  <input id="retentionInterval" type="number" min="1" value="60">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveRetention">Save Retention Settings</button>
+                <button class="refresh" id="refreshRetention">Refresh</button>
+              </div>
+              <div class="error" id="retentionError"></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Purge Policies</h2>
+            <div class="body">
+              <div class="hint">Policies are stored in the database and applied by the retention service.</div>
+              <div class="row-3">
+                <label>Policy
+                  <select id="purgePolicyId"></select>
+                </label>
+                <label>Enabled
+                  <select id="purgeEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Retention Days
+                  <input id="purgeRetentionDays" type="number" min="1" value="30">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Apply To
+                  <select id="purgeApplyTo">
+                    <option>DeliveryAttempts</option>
+                    <option>DeliveryWorkItemsTerminal</option>
+                  </select>
+                </label>
+                <label>Interval Minutes
+                  <input id="purgeIntervalMinutes" type="number" min="1" value="60">
+                </label>
+                <label>Terminal Statuses CSV
+                  <input id="purgeTerminalStatuses" placeholder="Succeeded,Failed,Canceled">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="savePurgePolicy">Save Policy</button>
+                <button id="resetPurgePolicy">Reset</button>
+              </div>
+              <div class="error" id="purgeError"></div>
+
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Apply To</th><th>Retention</th><th>Interval</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="purgeBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="alerts" data-access="admin">
+          <section class="card">
+            <h2>Alert Settings</h2>
+            <div class="body">
+              <div class="hint">Configure CRON monitor messages and listener-down email alerts. These settings are editable by Admin users only.</div>
+
+              <h3 style="margin: 10px 0 8px; font-size:0.95rem;">CRON Monitor</h3>
+              <div class="row">
+                <label>Monitor Enabled
+                  <select id="alertMonitorEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>Monitor Interval Seconds
+                  <input id="alertMonitorInterval" type="number" min="10" value="60">
+                </label>
+              </div>
+              <div class="row">
+                <label>Monitor URL
+                  <input id="alertMonitorUrl" placeholder="https://your-monitor/ping">
+                </label>
+              </div>
+
+              <h3 style="margin: 14px 0 8px; font-size:0.95rem;">Email Alert</h3>
+              <div class="row-3">
+                <label>Email Enabled
+                  <select id="alertEmailEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label>SMTP Host
+                  <input id="alertEmailSmtpHost" placeholder="smtp.example.com">
+                </label>
+                <label>SMTP Port
+                  <input id="alertEmailSmtpPort" type="number" min="1" max="65535" value="587">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Use SSL
+                  <select id="alertEmailUseSsl">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </label>
+                <label>SMTP Username
+                  <input id="alertEmailUsername" placeholder="smtp-user">
+                </label>
+                <label>SMTP Password
+                  <input id="alertEmailPassword" type="password" placeholder="Leave blank to keep existing">
+                </label>
+              </div>
+              <div class="row-3">
+                <label>Email From
+                  <input id="alertEmailFrom" placeholder="noreply@example.com">
+                </label>
+                <label>Email To (comma-separated)
+                  <input id="alertEmailTo" placeholder="ops@example.com, admin@example.com">
+                </label>
+                <label>Listener Down Email Cooldown Minutes
+                  <input id="alertEmailCooldownMinutes" type="number" min="1" value="30">
+                </label>
+              </div>
+              <div class="row">
+                <label>Clear Stored SMTP Password
+                  <select id="alertClearEmailPassword">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="toolbar">
+                <button class="primary" id="saveAlertSettings">Save Alert Settings</button>
+                <button class="refresh" id="refreshAlertSettings">Refresh</button>
+              </div>
+              <div class="error" id="alertError"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-section" data-view="administrators" data-access="admin">
+          <section class="card">
+            <h2>Administrators</h2>
+            <div class="body">
+              <div class="hint">Only Admin role users can view and modify admin accounts.</div>
+              <div class="row-3">
+                <label>Username
+                  <input id="adminUserName" placeholder="new-admin">
+                </label>
+                <label>Role
+                  <select id="adminUserRole">
+                    <option value="Admin">Admin</option>
+                    <option value="Settings">Settings</option>
+                    <option value="ReadOnly">ReadOnly</option>
+                  </select>
+                </label>
+                <label>Enabled
+                  <select id="adminUserEnabled">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div class="row">
+                <label>Password
+                  <input id="adminUserPassword" type="password" placeholder="Required when creating; leave blank to keep existing on edit">
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="saveAdminUser">Save User</button>
+                <button id="resetAdminUser">Reset Form</button>
+                <button class="refresh" id="refreshAdminUsers">Refresh Users</button>
+              </div>
+              <div class="error" id="adminUserError"></div>
+              <table>
+                <thead>
+                  <tr><th>Username</th><th>Role</th><th>Status</th><th>Updated</th><th>Action</th></tr>
+                </thead>
+                <tbody id="adminUsersBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- ── Status Page ───────────────────────────────────────── -->
+        <section class="view-section active" data-view="status">
+          <div class="toolbar status-layout-toolbar">
+            <button id="toggleStatusLayoutLock" class="secondary">Lock Layout</button>
+            <button id="resetStatusLayout">Reset Panel Layout</button>
+            <div class="hint">Desktop: drag panels by Move and resize using the bottom-right grip. Layout is saved per user.</div>
+          </div>
+          <div class="status-grid">
+
+            <!-- Dispatcher State + Pause Controls -->
+            <section class="card status-panel" data-panel-id="dispatcher">
+              <h2>Delivery Dispatcher</h2>
+              <div class="body">
+                <div id="dispatcherBadge" class="dispatcher-badge running">
+                  <span class="dot"></span>
+                  <span id="dispatcherLabel">Running</span>
+                </div>
+                <div id="dispatcherMeta" class="muted" style="margin-bottom:12px;"></div>
+
+                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+
+                <h3 style="margin-bottom:10px;font-size:0.95rem;">Pause Delivery</h3>
+                <div class="pause-row">
+                  <label>Duration
+                    <select id="pauseDuration">
+                      <option value="">Indefinitely (manual resume)</option>
+                      <option value="15">15 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="120">2 hours</option>
+                      <option value="240">4 hours</option>
+                      <option value="480">8 hours</option>
+                      <option value="1440">24 hours</option>
+                    </select>
+                  </label>
+                  <label>Reason (optional)
+                    <input id="pauseReason" placeholder="e.g. scheduled maintenance">
+                  </label>
+                </div>
+                <div class="toolbar" style="margin-top:12px;">
+                  <button class="primary" id="pauseBtn">Pause Delivery</button>
+                  <button id="resumeBtn">Resume Now</button>
+                  <button class="refresh" id="refreshStatus">Refresh</button>
+                </div>
+                <div class="error" id="statusError" style="margin-top:8px;"></div>
+              </div>
+            </section>
+
+            <!-- Queue Statistics -->
+            <section class="card status-panel" data-panel-id="queueStats">
+              <h2>Queue Statistics</h2>
+              <div class="body">
+                <div class="stat-strip" id="queueStatStrip">
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Pending</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">In Progress</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Retry Scheduled</div></div>
+                  <div class="stat-box ok"><div class="count">–</div><div class="label">Succeeded</div></div>
+                  <div class="stat-box bad"><div class="count">–</div><div class="label">Failed</div></div>
+                  <div class="stat-box dim"><div class="count">–</div><div class="label">Canceled</div></div>
+                </div>
+                <div style="margin-top:14px;">
+                  <span class="muted">Total work items: </span>
+                  <strong id="queueStatTotal">–</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card-wide status-panel" data-panel-id="topRules">
+              <h2>Top Rules By Destinations</h2>
+              <div class="body">
+                <div class="hint">Top 10 rules with the highest total configured destinations and delivered reports.</div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Rule</th><th>Folder</th><th>LPD</th><th>Total</th><th>Delivered Reports</th></tr>
+                    </thead>
+                    <tbody id="statusTopRulesBody">
+                      <tr><td colspan="5" class="muted">No data yet.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <!-- LPD Listener -->
+            <section class="card status-panel" data-panel-id="listener">
+              <h2>LPD Listener</h2>
+              <div class="body">
+                <div id="listenerBadge" class="dispatcher-badge running">
+                  <span class="dot"></span>
+                  <span id="listenerLabel">Listening</span>
+                </div>
+                <div id="listenerMeta" class="muted"></div>
+              </div>
+            </section>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    let queueDetailsAlignFramePending = false;
+    const state = {
+      rules: [],
+      folderDestinations: [],
+      forwardDestinations: [],
+      retryPolicies: [],
+      purgePolicies: [],
+      retentionSettings: null,
+      workItems: [],
+      editingRuleId: null,
+      editingFolderId: null,
+      editingForwardId: null,
+      editingPurgePolicyId: null,
+      editingAdminUserId: null,
+      queuePage: 1,
+      queueTotalPages: 1,
+      queueSelectedId: null,
+      isMenuCollapsed: false,
+      currentRole: 'ReadOnly',
+      currentUsername: null,
+      sessionMinutes: 480,
+      sessionCheckTimerId: null,
+      inactivityTimerId: null,
+      sessionGuardsAttached: false,
+      alerts: null,
+      canManageSettings: false,
+      canManageAdminUsers: false,
+      adminUsers: [],
+      appVersion: null,
+      statusLayout: null,
+      statusLayoutLocked: false
+    };
+
+    const statusLayoutColumns = 12;
+    const statusLayoutDefaults = {
+      dispatcher: { x: 1, y: 1, w: 6, h: 5 },
+      queueStats: { x: 7, y: 1, w: 6, h: 4 },
+      listener: { x: 7, y: 5, w: 6, h: 2 },
+      topRules: { x: 1, y: 6, w: 12, h: 5 }
+    };
+    let statusLayoutInteraction = null;
+
+    const viewLabels = {
+      status: 'System Status',
+      retention: 'Retention & Purge',
+      rules: 'Rules and Matching',
+      folder: 'Folder Routing',
+      lpd: 'LPD Forwarding',
+      topology: 'Rule Navigator',
+      delivery: 'Delivery Queue',
+      alerts: 'Alerts',
+      administrators: 'Administrators'
+    };
+
+    const helpTextByLabel = {
+      'Rule Name': 'Used as the unique rule identifier in configuration and audit records. Needed so operators can safely edit and troubleshoot the correct rule.',
+      'Priority': 'Controls evaluation order. Needed so higher-priority rules are processed before lower-priority rules.',
+      'Queue Match Type': 'Defines how queue matching is interpreted (Exact, Wildcard, Regex). Needed to parse the match value correctly.',
+      'Queue Match Value': 'The queue pattern to match incoming work. Needed to decide which items this rule applies to.',
+      'Match Operator': 'Defines how multiple rule conditions combine. Needed to enforce AND/OR behavior consistently.',
+      'Status': 'Turns the selected configuration on or off. Needed for safe staged rollout without deleting settings.',
+      'Rule Highlight Color': 'Visual marker for this rule in the UI. Needed to improve scanning and reduce operator mistakes.',
+      'Rule': 'Associates the destination or setting to a specific processing rule. Needed for correct routing behavior.',
+      'Destination Order': 'Execution order for destinations under the same rule. Needed when multiple destinations are configured.',
+      'Root Folder': 'Base output folder for routed files. Needed to store generated files in the intended location.',
+      'Subfolder Pattern Type': 'How subfolder templates are interpreted. Needed to apply date/token formatting correctly.',
+      'Subfolder Pattern': 'Template used to build subfolder paths. Needed to organize output by date or token.',
+      'Duplicate Policy': 'How filename collisions are handled. Needed to prevent overwrite-related loss or delivery failures.',
+      'Unique Name Mode': 'Strategy for generating unique filenames. Needed when duplicate handling requires conflict-free names.',
+      'Unique Affix': 'Optional text used in generated unique names. Needed for readability or naming policy alignment.',
+      'Retry Policy': 'Selects retry timing behavior after failures. Needed so transient errors can recover automatically.',
+      'Retry On Failure': 'Determines whether failed deliveries are queued for retry. Needed to choose resilience vs fail-fast behavior.',
+      'Host': 'Remote destination hostname or IP. Needed to open outbound forwarding connections.',
+      'Port': 'Remote destination service port. Needed to reach the correct listener.',
+      'Outbound Queue Name': 'Queue identifier sent to the remote receiver. Needed so forwarded jobs are routed correctly downstream.',
+      'Compression': 'Whether payload compression is used before forwarding. Needed to balance bandwidth and compatibility.',
+      'Payload Mode': 'Chooses which payload representation is forwarded. Needed to control downstream fidelity and behavior.',
+      'Search': 'UI filter text for queue browsing. Needed only to narrow displayed results.',
+      'Page Size': 'Number of rows shown per page. Needed to balance readability and response speed.',
+      'Jump to': 'Target page number in pagination. Needed for fast navigation in large queues.',
+      'Enabled': 'Activation flag for this entity. Needed to temporarily disable behavior without deleting it.',
+      'Retention Days': 'How long data is kept before cleanup. Needed for storage control and retention compliance.',
+      'Run Interval (minutes)': 'How often retention jobs run. Needed to schedule cleanup frequency and system load.',
+      'Policy': 'Which saved purge policy you are editing. Needed so updates apply to the intended record.',
+      'Apply To': 'Dataset targeted by the purge policy. Needed to ensure cleanup affects only the intended records.',
+      'Interval Minutes': 'Recurrence for purge execution. Needed to control cleanup cadence.',
+      'Terminal Statuses CSV': 'Terminal outcomes eligible for purge, comma-separated. Needed to avoid deleting active or in-progress records.',
+      'Username': 'Administrator sign-in identity. Needed for authentication, authorization, and audit attribution.',
+      'Role': 'Permission scope for this administrator. Needed to enforce least-privilege access.',
+      'Password': 'Credential used to verify administrator identity. Needed to protect admin operations; stored as a secure hash and never shown back in plain text.',
+      'Duration': 'Requested pause window for delivery processing. Needed for controlled maintenance or incident response.',
+      'Reason (optional)': 'Optional operator note explaining why delivery was paused. Needed for audit context and team visibility.',
+      'Monitor Enabled': 'Turns CRON monitor heartbeat messaging on or off while the listener is healthy.',
+      'Monitor Interval Seconds': 'How often monitor heartbeat messages are sent while listening.',
+      'Monitor URL': 'Target endpoint that receives periodic monitor heartbeats.',
+      'Email Enabled': 'Turns listener-down email alerts on or off.',
+      'SMTP Host': 'SMTP server hostname used for sending alert emails.',
+      'SMTP Port': 'SMTP server port for outbound alert email delivery.',
+      'Use SSL': 'Controls whether SMTP transport uses SSL/TLS.',
+      'SMTP Username': 'Optional SMTP account username for authenticated email sending.',
+      'SMTP Password': 'Optional SMTP account password used with the SMTP username.',
+      'Email From': 'Sender address used in listener-down alert emails.',
+      'Email To (comma-separated)': 'One or more recipient email addresses for listener-down alerts.',
+      'Listener Down Email Cooldown Minutes': 'Minimum minutes between repeated listener-down emails while the listener remains unavailable.',
+      'Clear Stored SMTP Password': 'When set to Yes, removes the currently stored SMTP password on save.'
+    };
+
+    const adminOnlyLabels = new Set(['Username', 'Role', 'Password']);
+
+    function applyMenuState() {
+      const body = document.body;
+      body.classList.toggle('menu-collapsed', state.isMenuCollapsed);
+      body.classList.toggle('menu-expanded', !state.isMenuCollapsed);
+      const toggle = el('menuToggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', state.isMenuCollapsed ? 'false' : 'true');
+        toggle.classList.toggle('active', !state.isMenuCollapsed);
+      }
+    }
+
+    function applyAccessControls() {
+      const canManageSettings = state.currentRole === 'Admin' || state.currentRole === 'Settings';
+      const canManageAdminUsers = state.currentRole === 'Admin';
+      state.canManageSettings = canManageSettings;
+      state.canManageAdminUsers = canManageAdminUsers;
+      document.body.classList.toggle('read-only', !canManageSettings);
+
+      document.querySelectorAll('[data-access="settings"]').forEach(section => {
+        section.hidden = !canManageSettings;
+      });
+
+      document.querySelectorAll('[data-access="admin"]').forEach(section => {
+        section.hidden = !canManageAdminUsers;
+      });
+
+      const settingsButtons = [el('saveRetention'), el('refreshRetention'), el('savePurgePolicy'), el('resetPurgePolicy'), el('saveRule'), el('resetRule'), el('refreshRules'), el('saveRuleOrder'), el('saveFolder'), el('resetFolder'), el('saveForward'), el('resetForward')];
+      settingsButtons.forEach(button => {
+        if (!button) return;
+        button.disabled = !canManageSettings;
+      });
+
+      [el('pauseBtn'), el('resumeBtn')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageSettings;
+        button.disabled = !canManageSettings;
+      });
+
+      [el('saveAdminUser'), el('resetAdminUser'), el('refreshAdminUsers')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageAdminUsers;
+        button.disabled = !canManageAdminUsers;
+      });
+
+      [el('saveAlertSettings'), el('refreshAlertSettings')].forEach(button => {
+        if (!button) return;
+        button.hidden = !canManageAdminUsers;
+        button.disabled = !canManageAdminUsers;
+      });
+
+      refreshLabelHelpText();
+    }
+
+    function syncLayoutOffsets() {
+      const header = document.querySelector('header');
+      if (!header) return;
+      const headerHeight = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--header-offset', headerHeight + 'px');
+    }
+
+    function extractPrimaryLabelText(label) {
+      for (const node of label.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = (node.textContent || '').trim();
+          if (text.length > 0) {
+            return { text, node };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function helpTextForLabel(labelText) {
+      const mapped = helpTextByLabel[labelText];
+      const baseText = mapped || (labelText + ' is collected to configure how Beacon Relay stores, routes, filters, or presents operational data. It is needed to execute delivery workflows reliably and to support administration visibility.');
+
+      if (state.currentRole === 'ReadOnly') {
+        return baseText + ' Current role is ReadOnly, so this value is view-only.';
+      }
+
+      if (state.currentRole === 'Settings' && adminOnlyLabels.has(labelText)) {
+        return baseText + ' Current role is Settings; only Admin users can modify administrator accounts.';
+      }
+
+      if (state.currentRole === 'Admin' && adminOnlyLabels.has(labelText)) {
+        return baseText + ' Current role is Admin, so you can create, update, and disable administrator accounts.';
+      }
+
+      if (state.currentRole === 'Settings') {
+        return baseText + ' Current role is Settings, so this field can be configured.';
+      }
+
+      if (state.currentRole === 'Admin') {
+        return baseText + ' Current role is Admin, so this field can be configured.';
+      }
+
+      return baseText;
+    }
+
+    function refreshLabelHelpText() {
+      const role = (state.currentRole || 'ReadOnly').toLowerCase();
+      const roleLabel = role === 'admin' ? 'Admin' : (role === 'settings' ? 'Settings' : 'ReadOnly');
+
+      document.querySelectorAll('.label-help-wrap').forEach(wrap => {
+        const labelText = wrap.dataset.labelText || '';
+        const popover = wrap.querySelector('.label-help-popover');
+        const roleBadge = wrap.querySelector('.label-help-role');
+        const body = wrap.querySelector('.label-help-body');
+        wrap.dataset.role = role;
+        if (roleBadge) {
+          roleBadge.textContent = roleLabel;
+        }
+        if (!labelText || !popover) {
+          return;
+        }
+
+        const message = helpTextForLabel(labelText);
+        if (body) {
+          body.textContent = message;
+        } else {
+          popover.textContent = message;
+        }
+      });
+    }
+
+    function closeAllLabelHelp(exceptWrap) {
+      document.querySelectorAll('.label-help-wrap').forEach(wrap => {
+        if (exceptWrap && wrap === exceptWrap) {
+          return;
+        }
+
+        const popover = wrap.querySelector('.label-help-popover');
+        const trigger = wrap.querySelector('.label-help-icon');
+        if (!popover || !trigger) {
+          return;
+        }
+
+        popover.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function attachLabelHelp() {
+      let nextId = 1;
+
+      document.querySelectorAll('label').forEach(label => {
+        if (label.dataset.helpReady === 'true') {
+          return;
+        }
+
+        const textInfo = extractPrimaryLabelText(label);
+        if (!textInfo) {
+          return;
+        }
+
+        const labelText = textInfo.text;
+        const textNode = textInfo.node;
+
+        textNode.textContent = '';
+
+        const wrap = document.createElement('span');
+        wrap.className = 'label-help-wrap';
+        wrap.dataset.labelText = labelText;
+
+        const title = document.createElement('span');
+        title.textContent = labelText;
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'label-help-icon';
+        trigger.textContent = '?';
+        trigger.setAttribute('aria-label', 'Help for ' + labelText);
+        trigger.setAttribute('aria-expanded', 'false');
+
+        const popover = document.createElement('span');
+        popover.className = 'label-help-popover';
+        popover.id = 'labelHelp' + nextId;
+
+        const head = document.createElement('span');
+        head.className = 'label-help-head';
+
+        const titleText = document.createElement('span');
+        titleText.className = 'label-help-title';
+        titleText.textContent = 'Field Help';
+
+        const roleBadge = document.createElement('span');
+        roleBadge.className = 'label-help-role';
+        roleBadge.textContent = 'ReadOnly';
+
+        const body = document.createElement('span');
+        body.className = 'label-help-body';
+        body.textContent = helpTextForLabel(labelText);
+
+        head.appendChild(titleText);
+        head.appendChild(roleBadge);
+        popover.appendChild(head);
+        popover.appendChild(body);
+        trigger.setAttribute('aria-controls', popover.id);
+
+        nextId += 1;
+
+        trigger.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const willOpen = !popover.classList.contains('open');
+          closeAllLabelHelp(wrap);
+          popover.classList.toggle('open', willOpen);
+          trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+
+        wrap.appendChild(title);
+        wrap.appendChild(trigger);
+        wrap.appendChild(popover);
+        label.insertBefore(wrap, label.firstChild);
+        label.dataset.helpReady = 'true';
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element) || !event.target.closest('.label-help-wrap')) {
+          closeAllLabelHelp();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if ((event.key || '').toLowerCase() === 'escape') {
+          closeAllLabelHelp();
+        }
+      });
+
+      refreshLabelHelpText();
+    }
+
+    function appRootPath() {
+      const path = window.location.pathname || '/';
+      const lowerPath = path.toLowerCase();
+
+      const suffixes = ['/admin/index.html', '/admin/', '/admin'];
+      for (const suffix of suffixes) {
+        if (!lowerPath.endsWith(suffix)) {
+          continue;
+        }
+
+        const root = path.slice(0, path.length - suffix.length);
+        return root || '';
+      }
+
+      return '';
+    }
+
+    function resolveAppUrl(url) {
+      if (typeof url !== 'string' || !url.startsWith('/')) {
+        return url;
+      }
+
+      const root = appRootPath();
+      return root ? (root + url) : url;
+    }
+
+    function loginUrlWithReturnPath() {
+      const currentPath = (window.location.pathname || '') + (window.location.search || '');
+      return resolveAppUrl('/login.html?returnUrl=' + encodeURIComponent(currentPath));
+    }
+
+    async function forceLogoutAndRedirect() {
+      clearSessionGuards();
+      try {
+        await fetch(resolveAppUrl('/auth/logout'), { method: 'POST', credentials: 'same-origin' });
+      } catch (_) {
+        // Ignore logout API failures; continue redirect.
+      }
+
+      window.location.href = loginUrlWithReturnPath();
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(resolveAppUrl(url), { credentials: 'same-origin', ...options });
+      let payload = null;
+
+      if (response.status === 401) {
+        await forceLogoutAndRedirect();
+        const authError = new Error('Session expired. Please sign in again.');
+        authError.payload = null;
+        throw authError;
+      }
+
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (contentType.includes('application/json')) {
+        try { payload = await response.json(); } catch (_) {}
+      } else {
+        const rawText = await response.text();
+        const trimmedText = (rawText || '').trim();
+        if (trimmedText.length > 0) {
+          try { payload = JSON.parse(trimmedText); } catch (_) { payload = { detail: trimmedText }; }
+        }
+      }
+
+      if (!response.ok) {
+        const detail = formatApiError(payload, response.statusText);
+        const error = new Error(detail);
+        error.payload = payload;
+        throw error;
+      }
+
+      if (payload === null && response.status !== 204) {
+        throw new Error('Server returned an empty response.');
+      }
+
+      return payload;
+    }
+
+    function formatApiError(payload, fallbackText) {
+      if (!payload || typeof payload !== 'object') {
+        return fallbackText || 'Request failed.';
+      }
+
+      const errors = payload.errors;
+      if (errors && typeof errors === 'object') {
+        const messages = Object.entries(errors)
+          .flatMap(([field, fieldMessages]) => (fieldMessages || []).map(msg => field + ': ' + msg));
+        if (messages.length > 0) {
+          return messages.join('\n');
+        }
+      }
+
+      return payload.title || payload.detail || fallbackText || 'Request failed.';
+    }
+
+    function statusPill(status) {
+      const normalized = String(status);
+      const className = normalized === 'Succeeded' || normalized === 'Enabled' ? 'ok' : (normalized === 'Failed' || normalized === 'Canceled' || normalized === 'Disabled' ? 'bad' : 'warn');
+      return '<span class="pill ' + className + '">' + normalized + '</span>';
+    }
+
+    function ruleName(ruleId) {
+      const rule = state.rules.find(x => x.id === ruleId);
+      return rule ? rule.name : ('Rule #' + ruleId);
+    }
+
+    function retryPolicyName(policyId) {
+      if (!policyId) { return 'Default'; }
+      const policy = state.retryPolicies.find(x => x.id === policyId);
+      return policy ? policy.name : ('Policy #' + policyId);
+    }
+
+    function normalizeHexColor(value) {
+      if (!value) {
+        return '#0F5CC0';
+      }
+
+      const text = String(value).trim();
+      const prefixed = text.startsWith('#') ? text : ('#' + text);
+      const valid = /^#[0-9a-fA-F]{6}$/.test(prefixed);
+      return valid ? prefixed.toUpperCase() : '#0F5CC0';
+    }
+
+    function ruleHighlightColor(ruleId) {
+      const rule = state.rules.find(x => x.id === ruleId);
+      return normalizeHexColor(rule && rule.highlightColor);
+    }
+
+    function formatLocalTime(value) {
+      if (!value) {
+        return '-';
+      }
+
+      const timestamp = new Date(value);
+      if (Number.isNaN(timestamp.getTime())) {
+        return '-';
+      }
+
+      return timestamp.toLocaleString();
+    }
+
+    function dateInputValueForToday() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function ensureQueueDateRangeDefaults() {
+      const startInput = el('queueStartDate');
+      const endInput = el('queueEndDate');
+      if (!startInput || !endInput) {
+        return;
+      }
+
+      if (!startInput.value && !endInput.value) {
+        const today = dateInputValueForToday();
+        startInput.value = today;
+        endInput.value = today;
+      }
+    }
+
+    function setRuleOptions(selectId) {
+      const placeholder = '<option value="">Choose Rule</option>';
+      const html = state.rules.map(rule => '<option value="' + rule.id + '">' + rule.name + '</option>').join('');
+      el(selectId).innerHTML = placeholder + html;
+    }
+
+    function setRetryPolicyOptions(selectId) {
+      const html = '<option value="">Default</option>' + state.retryPolicies.map(policy => '<option value="' + policy.id + '">' + policy.name + '</option>').join('');
+      el(selectId).innerHTML = html;
+    }
+
+    function flattenDestinations() {
+      state.folderDestinations = state.rules.flatMap(rule => (rule.folderDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
+      state.forwardDestinations = state.rules.flatMap(rule => (rule.forwardDestinations || []).map(dest => ({ ...dest, ruleName: rule.name })));
+    }
+
+    function destinationSummary(item) {
+      const originalRule = ruleName(item.ruleId);
+
+      if (String(item.destinationType).toLowerCase() === 'folder') {
+        const folder = state.folderDestinations.find(x => x.id === item.destinationId);
+        const destination = folder ? ('Folder: ' + folder.rootFolder) : ('Folder #' + item.destinationId);
+        return originalRule + ' -> ' + destination;
+      }
+
+      if (String(item.destinationType).toLowerCase() === 'forwardlpd') {
+        const forward = state.forwardDestinations.find(x => x.id === item.destinationId);
+        const destination = forward
+          ? ('LPD: ' + forward.host + ':' + forward.port + ' / ' + forward.outboundQueueName)
+          : ('LPD #' + item.destinationId);
+        return originalRule + ' -> ' + destination;
+      }
+
+      return originalRule + ' -> ' + item.destinationType + ' #' + item.destinationId;
+    }
+
+    function isTerminalQueueStatus(status) {
+      const normalized = String(status || '');
+      return normalized === 'Succeeded' || normalized === 'Failed' || normalized === 'Canceled';
+    }
+
+    function renderRules() {
+      el('rulesBody').innerHTML = state.rules.map((rule, index) => {
+        const folderCount = (rule.folderDestinations || []).length;
+        const forwardCount = (rule.forwardDestinations || []).length;
+        const highlightColor = normalizeHexColor(rule.highlightColor);
+        return '<tr>' +
+          '<td style="border-left:4px solid ' + highlightColor + ';">' + rule.priority + '</td>' +
+          '<td><span class="rule-color-chip" style="background:' + highlightColor + ';"></span>' + rule.name + '</td>' +
+          '<td>' + rule.queueMatchType + ': ' + (rule.queueMatchValue || '(none)') + '</td>' +
+          '<td>' + folderCount + ' folder / ' + forwardCount + ' forward</td>' +
+          '<td>' + statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="moveRule(' + index + ', -1)">Up</button>' +
+            '<button onclick="moveRule(' + index + ', 1)">Down</button>' +
+            '<button onclick="editRule(' + rule.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteRule(' + rule.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderFolderDestinations() {
+      el('folderBody').innerHTML = state.folderDestinations.map(dest =>
+        '<tr>' +
+          '<td>' + dest.ruleName + '</td>' +
+          '<td>' + dest.rootFolder + '</td>' +
+          '<td>' + dest.subfolderPatternType + ': ' + dest.subfolderPattern + '</td>' +
+          '<td>' + retryPolicyName(dest.retryPolicyId) + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editFolder(' + dest.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteFolder(' + dest.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function renderForwardDestinations() {
+      el('forwardBody').innerHTML = state.forwardDestinations.map(dest =>
+        '<tr>' +
+          '<td>' + dest.ruleName + '</td>' +
+          '<td>' + dest.host + ':' + dest.port + '</td>' +
+          '<td>' + dest.outboundQueueName + '</td>' +
+          '<td>' + retryPolicyName(dest.retryPolicyId) + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editForward(' + dest.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteForward(' + dest.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function topologySearchTerm() {
+      const input = el('topologySearch');
+      return input ? String(input.value || '').trim().toLowerCase() : '';
+    }
+
+    function filterRulesForTopology(rules) {
+      const term = topologySearchTerm();
+      if (!term) {
+        return rules.map(rule => ({
+          ...rule,
+          filteredFolders: rule.folderDestinations || [],
+          filteredLpds: rule.forwardDestinations || []
+        }));
+      }
+
+      const filtered = [];
+      for (const rule of rules) {
+        const allFolders = rule.folderDestinations || [];
+        const allLpds = rule.forwardDestinations || [];
+
+        const ruleMatches = (rule.name || '').toLowerCase().includes(term)
+          || String(rule.id).includes(term)
+          || String(rule.priority).includes(term)
+          || (rule.queueMatchValue || '').toLowerCase().includes(term);
+
+        const matchingFolders = allFolders.filter(folder =>
+          (folder.rootFolder || '').toLowerCase().includes(term)
+          || (folder.subfolderPattern || '').toLowerCase().includes(term)
+          || (folder.subfolderPatternType || '').toLowerCase().includes(term)
+          || String(folder.id).includes(term)
+        );
+
+        const matchingLpds = allLpds.filter(forward =>
+          (forward.host || '').toLowerCase().includes(term)
+          || String(forward.port || '').includes(term)
+          || (forward.outboundQueueName || '').toLowerCase().includes(term)
+          || String(forward.id).includes(term)
+        );
+
+        if (ruleMatches || matchingFolders.length > 0 || matchingLpds.length > 0) {
+          filtered.push({
+            ...rule,
+            filteredFolders: ruleMatches ? allFolders : matchingFolders,
+            filteredLpds: ruleMatches ? allLpds : matchingLpds
+          });
+        }
+      }
+
+      return filtered;
+    }
+
+    function buildJumpItems(rulesForDisplay) {
+      const options = [];
+      const sourceRules = Array.isArray(rulesForDisplay) ? rulesForDisplay : state.rules;
+
+      for (const rule of sourceRules) {
+        options.push({
+          value: 'rule|' + rule.id,
+          label: '[Rule] ' + rule.name + ' (#' + rule.id + ')'
+        });
+
+        const folders = rule.filteredFolders || rule.folderDestinations || [];
+        const lpds = rule.filteredLpds || rule.forwardDestinations || [];
+
+        for (const folder of folders) {
+          options.push({
+            value: 'folder|' + folder.id,
+            label: '[Folder] ' + rule.name + ' -> ' + folder.rootFolder + ' (#' + folder.id + ')'
+          });
+        }
+
+        for (const forward of lpds) {
+          options.push({
+            value: 'lpd|' + forward.id,
+            label: '[LPD] ' + rule.name + ' -> ' + forward.host + ':' + forward.port + ' / ' + forward.outboundQueueName + ' (#' + forward.id + ')'
+          });
+        }
+      }
+
+      if (options.length === 0) {
+        el('jumpItemSelect').innerHTML = '<option value="">No items available</option>';
+        return;
+      }
+
+      el('jumpItemSelect').innerHTML = options
+        .map(item => '<option value="' + item.value + '">' + item.label + '</option>')
+        .join('');
+    }
+
+    function renderTopology() {
+      const filteredRules = filterRulesForTopology(state.rules);
+      const ruleCount = filteredRules.length;
+      const folderCount = filteredRules.reduce((sum, rule) => sum + ((rule.filteredFolders || []).length), 0);
+      const lpdCount = filteredRules.reduce((sum, rule) => sum + ((rule.filteredLpds || []).length), 0);
+
+      const summary = el('topologySummary');
+      if (summary) {
+        const counts = summary.querySelectorAll('.count');
+        if (counts.length >= 3) {
+          counts[0].textContent = String(ruleCount);
+          counts[1].textContent = String(folderCount);
+          counts[2].textContent = String(lpdCount);
+        }
+      }
+
+      const list = el('topologyRuleList');
+      if (!list) {
+        return;
+      }
+
+      if (ruleCount === 0) {
+        list.innerHTML = topologySearchTerm()
+          ? '<div class="muted">No matching rules, folders, or LPD destinations found.</div>'
+          : '<div class="muted">No rules are configured yet.</div>';
+        buildJumpItems(filteredRules);
+        return;
+      }
+
+      list.innerHTML = filteredRules.map(rule => {
+        const color = normalizeHexColor(rule.highlightColor);
+        const folders = rule.filteredFolders || [];
+        const lpds = rule.filteredLpds || [];
+
+        const folderItems = folders.length === 0
+          ? '<div class="topology-item-empty">No folder destinations.</div>'
+          : folders.map(folder =>
+              '<div class="topology-item" style="border-left-color:' + color + ';">' +
+                '<div>' +
+                  '<div class="topology-item-name">' + folder.rootFolder + '</div>' +
+                  '<div class="muted">Pattern: ' + folder.subfolderPatternType + ' / ' + folder.subfolderPattern + '</div>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<span class="topology-item-id">Folder #' + folder.id + '</span>' +
+                  '<button onclick="jumpToSettingsItem(\'folder\',' + folder.id + ')">Edit</button>' +
+                '</div>' +
+              '</div>'
+            ).join('');
+
+        const lpdItems = lpds.length === 0
+          ? '<div class="topology-item-empty">No LPD destinations.</div>'
+          : lpds.map(forward =>
+              '<div class="topology-item" style="border-left-color:' + color + ';">' +
+                '<div>' +
+                  '<div class="topology-item-name">' + forward.host + ':' + forward.port + '</div>' +
+                  '<div class="muted">Queue: ' + forward.outboundQueueName + '</div>' +
+                '</div>' +
+                '<div class="actions">' +
+                  '<span class="topology-item-id">LPD #' + forward.id + '</span>' +
+                  '<button onclick="jumpToSettingsItem(\'lpd\',' + forward.id + ')">Edit</button>' +
+                '</div>' +
+              '</div>'
+            ).join('');
+
+        return '<div class="topology-rule-card" style="border-left-color:' + color + ';">' +
+          '<div class="topology-rule-head">' +
+            '<div>' +
+              '<div class="topology-rule-title"><span class="rule-color-chip" style="background:' + color + '; margin-right:0;"></span>' + rule.name + '</div>' +
+              '<div class="topology-rule-meta">Priority ' + rule.priority + ' · Match ' + rule.queueMatchType + ': ' + (rule.queueMatchValue || '(none)') + '</div>' +
+            '</div>' +
+            '<div class="actions">' +
+              statusPill(rule.isEnabled ? 'Enabled' : 'Disabled') +
+              '<button onclick="jumpToSettingsItem(\'rule\',' + rule.id + ')">Edit Rule</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="topology-children">' +
+            '<div><strong>Folder Destinations</strong></div>' +
+            folderItems +
+            '<div style="margin-top:4px;"><strong>LPD Destinations</strong></div>' +
+            lpdItems +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      buildJumpItems(filteredRules);
+    }
+
+    function jumpToSettingsItem(kind, id) {
+      const normalizedKind = String(kind || '').toLowerCase();
+      const numericId = Number(id);
+      el('topologyError').textContent = '';
+
+      if (!numericId) {
+        el('topologyError').textContent = 'Please choose a valid item to jump to.';
+        return;
+      }
+
+      if (normalizedKind === 'rule') {
+        setActiveView('rules');
+        editRule(numericId);
+        const input = el('ruleName');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      if (normalizedKind === 'folder') {
+        const folder = state.folderDestinations.find(x => x.id === numericId);
+        setActiveView('folder');
+        if (folder) {
+          editFolder(numericId);
+        }
+        const input = el('folderRoot');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      if (normalizedKind === 'lpd') {
+        const forward = state.forwardDestinations.find(x => x.id === numericId);
+        setActiveView('lpd');
+        if (forward) {
+          editForward(numericId);
+        }
+        const input = el('forwardHost');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
+      el('topologyError').textContent = 'Unknown item type selected.';
+    }
+
+    function renderQueue() {
+      el('queueBody').innerHTML = state.workItems.map(item =>
+        '<tr class="queue-row' + (state.queueSelectedId === item.id ? ' selected' : '') + '" onclick="selectQueueItem(\'' + item.id + '\')" style="border-left:4px solid ' + ruleHighlightColor(item.ruleId) + ';">' +
+          '<td>' + statusPill(item.status) + '</td>' +
+          '<td>' + destinationSummary(item) + '</td>' +
+          '<td>' + item.attemptCount + '</td>' +
+          '<td>' + formatLocalTime(item.nextAttemptUtc) + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="showDetails(\'' + item.id + '\', true); return false;">Details</button>' +
+            (state.canManageSettings ? '<button onclick="retryItem(\'' + item.id + '\'); return false;">Retry</button>' : '') +
+            (state.canManageSettings && !isTerminalQueueStatus(item.status) ? '<button class="danger" onclick="cancelItem(\'' + item.id + '\'); return false;">Cancel</button>' : '') +
+          '</td>' +
+        '</tr>'
+      ).join('');
+
+      el('pageSummary').textContent = 'Page ' + state.queuePage + ' of ' + state.queueTotalPages;
+      el('queuePageInput').value = String(state.queuePage);
+      el('queuePageInput').max = String(state.queueTotalPages);
+      el('firstPage').disabled = state.queuePage <= 1;
+      el('prevPage').disabled = state.queuePage <= 1;
+      el('nextPage').disabled = state.queuePage >= state.queueTotalPages;
+      el('lastPage').disabled = state.queuePage >= state.queueTotalPages;
+    }
+
+    async function loadAuthStatus() {
+      try {
+        const status = await fetchJson('/auth/status');
+        if (!status || status.authenticated !== true) {
+          await forceLogoutAndRedirect();
+          return;
+        }
+
+        state.currentRole = status.role || 'ReadOnly';
+        state.currentUsername = (status.username || 'admin').toLowerCase();
+        state.sessionMinutes = Math.max(5, Number(status.sessionMinutes) || 480);
+        el('authStatus').textContent = status.authenticated
+          ? ('Signed in as ' + (status.username || 'admin') + ' (' + state.currentRole + ')')
+          : 'Signed out';
+        applyAccessControls();
+        initializeStatusLayoutForCurrentUser();
+        startSessionGuards();
+      } catch (_) {
+        el('authStatus').textContent = '';
+        if (!state.currentUsername) {
+          state.currentUsername = 'anonymous';
+        }
+        initializeStatusLayoutForCurrentUser();
+      }
+    }
+
+    async function loadAppVersion() {
+      const versionElement = el('appVersion');
+      if (!versionElement) {
+        return;
+      }
+
+      try {
+        const data = await fetchJson('/api/system/version');
+        state.appVersion = data;
+
+        const semver = String(data.version || '').trim();
+        const build = String(data.buildNumber || '').trim();
+        const revision = String(data.sourceRevisionId || '').trim();
+
+        let text = semver ? ('Version ' + semver) : 'Version unavailable';
+        if (build) {
+          text += ' | Build ' + build;
+        }
+        if (revision) {
+          text += ' | ' + revision;
+        }
+
+        versionElement.textContent = text;
+      } catch (_) {
+        versionElement.textContent = 'Version unavailable';
+      }
+    }
+
+    function clearSessionGuards() {
+      if (state.sessionCheckTimerId) {
+        window.clearInterval(state.sessionCheckTimerId);
+        state.sessionCheckTimerId = null;
+      }
+
+      if (state.inactivityTimerId) {
+        window.clearTimeout(state.inactivityTimerId);
+        state.inactivityTimerId = null;
+      }
+    }
+
+    function scheduleInactivityLogout() {
+      if (state.inactivityTimerId) {
+        window.clearTimeout(state.inactivityTimerId);
+      }
+
+      const timeoutMs = Math.max(5, Number(state.sessionMinutes) || 480) * 60 * 1000;
+      state.inactivityTimerId = window.setTimeout(() => {
+        forceLogoutAndRedirect();
+      }, timeoutMs);
+    }
+
+    function startSessionGuards() {
+      clearSessionGuards();
+
+      const resetActivityTimer = () => scheduleInactivityLogout();
+      if (!state.sessionGuardsAttached) {
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(eventName => {
+          document.addEventListener(eventName, resetActivityTimer, { passive: true });
+        });
+        state.sessionGuardsAttached = true;
+      }
+      scheduleInactivityLogout();
+
+      state.sessionCheckTimerId = window.setInterval(async () => {
+        try {
+          const response = await fetch(resolveAppUrl('/auth/status'), { credentials: 'same-origin' });
+          if (!response.ok) {
+            await forceLogoutAndRedirect();
+            return;
+          }
+
+          const status = await response.json();
+          if (!status || status.authenticated !== true) {
+            await forceLogoutAndRedirect();
+          }
+        } catch (_) {
+          // Ignore transient polling failures.
+        }
+      }, 60000);
+    }
+
+    async function loadAlertSettings() {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      const settings = await fetchJson('/api/alerts/settings');
+      state.alerts = settings;
+
+      el('alertMonitorEnabled').value = settings.monitorEnabled ? 'true' : 'false';
+      el('alertMonitorUrl').value = settings.monitorUrl || '';
+      el('alertMonitorInterval').value = settings.monitorIntervalSeconds || 60;
+      el('alertEmailEnabled').value = settings.emailEnabled ? 'true' : 'false';
+      el('alertEmailSmtpHost').value = settings.emailSmtpHost || '';
+      el('alertEmailSmtpPort').value = settings.emailSmtpPort || 587;
+      el('alertEmailUseSsl').value = settings.emailUseSsl ? 'true' : 'false';
+      el('alertEmailUsername').value = settings.emailUsername || '';
+      el('alertEmailPassword').value = '';
+      el('alertEmailFrom').value = settings.emailFrom || '';
+      el('alertEmailTo').value = settings.emailTo || '';
+      el('alertEmailCooldownMinutes').value = settings.listenerDownEmailCooldownMinutes || 30;
+      el('alertClearEmailPassword').value = 'false';
+      el('alertError').textContent = settings.emailPasswordConfigured
+        ? 'SMTP password is configured. Leave password blank to keep it unchanged.'
+        : '';
+    }
+
+    async function saveAlertSettings() {
+      try {
+        el('alertError').textContent = '';
+
+        const request = {
+          monitorEnabled: el('alertMonitorEnabled').value === 'true',
+          monitorUrl: el('alertMonitorUrl').value.trim() || null,
+          monitorIntervalSeconds: Number(el('alertMonitorInterval').value),
+          emailEnabled: el('alertEmailEnabled').value === 'true',
+          emailSmtpHost: el('alertEmailSmtpHost').value.trim() || null,
+          emailSmtpPort: Number(el('alertEmailSmtpPort').value),
+          emailUseSsl: el('alertEmailUseSsl').value === 'true',
+          emailUsername: el('alertEmailUsername').value.trim() || null,
+          emailPassword: el('alertEmailPassword').value,
+          clearEmailPassword: el('alertClearEmailPassword').value === 'true',
+          emailFrom: el('alertEmailFrom').value.trim() || null,
+          emailTo: el('alertEmailTo').value.trim() || null,
+          listenerDownEmailCooldownMinutes: Number(el('alertEmailCooldownMinutes').value)
+        };
+
+        await fetchJson('/api/alerts/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+
+        await loadAlertSettings();
+      } catch (err) {
+        el('alertError').textContent = 'Failed saving alert settings: ' + err.message;
+      }
+    }
+
+    function statusLayoutStorageKey() {
+      const userName = (state.currentUsername || 'anonymous').toLowerCase();
+      return 'beaconRelay.statusLayout.' + userName;
+    }
+
+    function statusLayoutLockStorageKey() {
+      const userName = (state.currentUsername || 'anonymous').toLowerCase();
+      return 'beaconRelay.statusLayout.lock.' + userName;
+    }
+
+    function cloneStatusLayoutDefaults() {
+      return Object.fromEntries(Object.entries(statusLayoutDefaults).map(([id, layout]) => [id, { ...layout }]));
+    }
+
+    function clampStatusPanelLayout(layout) {
+      const next = { ...layout };
+      next.w = Math.max(2, Math.min(statusLayoutColumns, Number(next.w) || 2));
+      next.h = Math.max(2, Number(next.h) || 2);
+      next.x = Math.max(1, Math.min(statusLayoutColumns - next.w + 1, Number(next.x) || 1));
+      next.y = Math.max(1, Number(next.y) || 1);
+      return next;
+    }
+
+    function loadStatusLayoutForCurrentUser() {
+      const defaults = cloneStatusLayoutDefaults();
+      const key = statusLayoutStorageKey();
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+          return defaults;
+        }
+
+        const parsed = JSON.parse(raw);
+        const panels = parsed && typeof parsed === 'object' ? parsed.panels : null;
+        if (!panels || typeof panels !== 'object') {
+          return defaults;
+        }
+
+        for (const panelId of Object.keys(defaults)) {
+          if (panels[panelId]) {
+            defaults[panelId] = clampStatusPanelLayout({ ...defaults[panelId], ...panels[panelId] });
+          }
+        }
+
+        return defaults;
+      } catch (_) {
+        return defaults;
+      }
+    }
+
+    function saveStatusLayoutForCurrentUser() {
+      if (!state.statusLayout) {
+        return;
+      }
+
+      const key = statusLayoutStorageKey();
+      try {
+        const payload = {
+          panels: state.statusLayout,
+          updatedUtc: new Date().toISOString()
+        };
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_) {
+        // Ignore storage write failures (quota/private mode).
+      }
+    }
+
+    function loadStatusLayoutLockForCurrentUser() {
+      try {
+        const raw = window.localStorage.getItem(statusLayoutLockStorageKey());
+        return raw === '1';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function saveStatusLayoutLockForCurrentUser() {
+      try {
+        window.localStorage.setItem(statusLayoutLockStorageKey(), state.statusLayoutLocked ? '1' : '0');
+      } catch (_) {
+        // Ignore storage write failures (quota/private mode).
+      }
+    }
+
+    function applyStatusLayoutLockUi() {
+      const isLocked = !!state.statusLayoutLocked;
+      document.body.classList.toggle('status-layout-locked', isLocked);
+
+      const lockButton = el('toggleStatusLayoutLock');
+      if (lockButton) {
+        lockButton.textContent = isLocked ? 'Unlock Layout' : 'Lock Layout';
+        lockButton.setAttribute('aria-pressed', isLocked ? 'true' : 'false');
+        lockButton.title = isLocked
+          ? 'Unlock panel dragging and resizing'
+          : 'Lock panel dragging and resizing';
+      }
+    }
+
+    function toggleStatusLayoutLock() {
+      state.statusLayoutLocked = !state.statusLayoutLocked;
+      saveStatusLayoutLockForCurrentUser();
+      applyStatusLayoutLockUi();
+    }
+
+    function panelLayoutsOverlap(a, b) {
+      const aRight = a.x + a.w - 1;
+      const aBottom = a.y + a.h - 1;
+      const bRight = b.x + b.w - 1;
+      const bBottom = b.y + b.h - 1;
+      return !(aRight < b.x || bRight < a.x || aBottom < b.y || bBottom < a.y);
+    }
+
+    function resolveStatusPanelCollisions(changedPanelId) {
+      if (!state.statusLayout) {
+        return;
+      }
+
+      const ids = Object.keys(statusLayoutDefaults);
+      let adjusted = true;
+      let guard = 0;
+
+      while (adjusted && guard < 64) {
+        adjusted = false;
+        guard += 1;
+
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const idA = ids[i];
+            const idB = ids[j];
+            const layoutA = state.statusLayout[idA];
+            const layoutB = state.statusLayout[idB];
+            if (!layoutA || !layoutB) {
+              continue;
+            }
+
+            if (!panelLayoutsOverlap(layoutA, layoutB)) {
+              continue;
+            }
+
+            const movingB = changedPanelId === idB;
+            const targetId = movingB ? idA : idB;
+            const anchor = movingB ? layoutB : layoutA;
+            const current = state.statusLayout[targetId];
+
+            state.statusLayout[targetId] = clampStatusPanelLayout({
+              ...current,
+              y: anchor.y + anchor.h
+            });
+            adjusted = true;
+          }
+        }
+      }
+    }
+
+    function applyStatusLayoutToGrid() {
+      const grid = document.querySelector('.status-grid');
+      if (!grid || !state.statusLayout) {
+        return;
+      }
+
+      const isDesktop = window.matchMedia('(min-width: 1000px)').matches;
+      const panels = Array.from(grid.querySelectorAll('.status-panel'));
+      for (const panel of panels) {
+        const panelId = panel.getAttribute('data-panel-id') || '';
+        const layout = state.statusLayout[panelId] || statusLayoutDefaults[panelId];
+        if (!layout || !isDesktop) {
+          panel.style.gridColumn = '';
+          panel.style.gridRow = '';
+          continue;
+        }
+
+        panel.style.gridColumn = layout.x + ' / span ' + layout.w;
+        panel.style.gridRow = layout.y + ' / span ' + layout.h;
+      }
+    }
+
+    function beginStatusPanelInteraction(event, panel, mode) {
+      if (!window.matchMedia('(min-width: 1000px)').matches || !state.statusLayout || state.statusLayoutLocked) {
+        return;
+      }
+
+      const panelId = panel.getAttribute('data-panel-id') || '';
+      const existing = state.statusLayout[panelId];
+      if (!panelId || !existing) {
+        return;
+      }
+
+      const grid = document.querySelector('.status-grid');
+      if (!grid) {
+        return;
+      }
+
+      event.preventDefault();
+      panel.classList.add('dragging');
+
+      const styles = window.getComputedStyle(grid);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || '14') || 14;
+      const rowHeight = Number.parseFloat(styles.gridAutoRows || '88') || 88;
+      const gridRect = grid.getBoundingClientRect();
+      const colWidth = (gridRect.width - (gap * (statusLayoutColumns - 1))) / statusLayoutColumns;
+
+      statusLayoutInteraction = {
+        mode,
+        panel,
+        panelId,
+        startLayout: { ...existing },
+        startX: event.clientX,
+        startY: event.clientY,
+        colUnit: Math.max(1, colWidth + gap),
+        rowUnit: Math.max(1, rowHeight + gap)
+      };
+
+      window.addEventListener('pointermove', onStatusPanelInteractionMove);
+      window.addEventListener('pointerup', endStatusPanelInteraction);
+    }
+
+    function onStatusPanelInteractionMove(event) {
+      if (!statusLayoutInteraction || !state.statusLayout) {
+        return;
+      }
+
+      const interaction = statusLayoutInteraction;
+      const dx = event.clientX - interaction.startX;
+      const dy = event.clientY - interaction.startY;
+      const deltaCols = Math.round(dx / interaction.colUnit);
+      const deltaRows = Math.round(dy / interaction.rowUnit);
+
+      if (interaction.mode === 'move') {
+        const moved = clampStatusPanelLayout({
+          ...interaction.startLayout,
+          x: interaction.startLayout.x + deltaCols,
+          y: interaction.startLayout.y + deltaRows
+        });
+        state.statusLayout[interaction.panelId] = moved;
+      } else {
+        const resized = clampStatusPanelLayout({
+          ...interaction.startLayout,
+          w: interaction.startLayout.w + deltaCols,
+          h: interaction.startLayout.h + deltaRows
+        });
+        state.statusLayout[interaction.panelId] = resized;
+      }
+
+      resolveStatusPanelCollisions(interaction.panelId);
+      applyStatusLayoutToGrid();
+    }
+
+    function endStatusPanelInteraction() {
+      if (!statusLayoutInteraction) {
+        return;
+      }
+
+      statusLayoutInteraction.panel.classList.remove('dragging');
+      statusLayoutInteraction = null;
+      window.removeEventListener('pointermove', onStatusPanelInteractionMove);
+      window.removeEventListener('pointerup', endStatusPanelInteraction);
+      saveStatusLayoutForCurrentUser();
+    }
+
+    function ensureStatusPanelControls() {
+      const panels = Array.from(document.querySelectorAll('.status-panel'));
+      for (const panel of panels) {
+        if (panel.querySelector('.panel-controls')) {
+          continue;
+        }
+
+        const panelId = panel.getAttribute('data-panel-id') || '';
+        if (!panelId) {
+          continue;
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'panel-controls';
+
+        const dragHandle = document.createElement('button');
+        dragHandle.type = 'button';
+        dragHandle.className = 'panel-drag-handle';
+        dragHandle.textContent = 'Move';
+        dragHandle.title = 'Drag to reposition panel';
+        dragHandle.addEventListener('pointerdown', (event) => beginStatusPanelInteraction(event, panel, 'move'));
+
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'panel-resize-handle';
+        resizeHandle.title = 'Drag to resize panel';
+        resizeHandle.addEventListener('pointerdown', (event) => beginStatusPanelInteraction(event, panel, 'resize'));
+
+        controls.appendChild(dragHandle);
+        panel.appendChild(controls);
+        panel.appendChild(resizeHandle);
+      }
+    }
+
+    function initializeStatusLayoutForCurrentUser() {
+      if (!state.currentUsername) {
+        return;
+      }
+
+      ensureStatusPanelControls();
+      state.statusLayout = loadStatusLayoutForCurrentUser();
+      state.statusLayoutLocked = loadStatusLayoutLockForCurrentUser();
+      resolveStatusPanelCollisions();
+      applyStatusLayoutToGrid();
+      applyStatusLayoutLockUi();
+    }
+
+    function resetStatusLayoutForCurrentUser() {
+      state.statusLayout = cloneStatusLayoutDefaults();
+      applyStatusLayoutToGrid();
+      saveStatusLayoutForCurrentUser();
+    }
+
+    async function loadRetryPolicies() {
+      state.retryPolicies = await fetchJson('/api/retry-policies');
+      setRetryPolicyOptions('folderRetryPolicyId');
+      setRetryPolicyOptions('forwardRetryPolicyId');
+    }
+
+    function setPurgePolicyOptions() {
+      const html = state.purgePolicies.map(policy => '<option value="' + policy.id + '">' + policy.name + '</option>').join('');
+      el('purgePolicyId').innerHTML = html || '<option value="">No purge policies</option>';
+    }
+
+    function renderAdminUsers() {
+      el('adminUsersBody').innerHTML = state.adminUsers.map(user =>
+        '<tr>' +
+          '<td>' + user.username + '</td>' +
+          '<td>' + user.role + '</td>' +
+          '<td>' + statusPill(user.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td>' + formatLocalTime(user.updatedUtc) + '</td>' +
+          '<td class="actions">' +
+            '<button onclick="editAdminUser(' + user.id + ')">Edit</button>' +
+            '<button class="danger" onclick="deleteAdminUser(' + user.id + ')">Delete</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function resetAdminUserForm() {
+      state.editingAdminUserId = null;
+      el('adminUserName').value = '';
+      el('adminUserRole').value = 'Admin';
+      el('adminUserEnabled').value = 'true';
+      el('adminUserPassword').value = '';
+      el('adminUserError').textContent = '';
+    }
+
+    function editAdminUser(id) {
+      const user = state.adminUsers.find(x => x.id === id);
+      if (!user) {
+        return;
+      }
+
+      state.editingAdminUserId = id;
+      el('adminUserName').value = user.username;
+      el('adminUserRole').value = user.role;
+      el('adminUserEnabled').value = user.isEnabled ? 'true' : 'false';
+      el('adminUserPassword').value = '';
+      el('adminUserError').textContent = '';
+    }
+
+    async function loadAdminUsers() {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      state.adminUsers = await fetchJson('/api/admin-users');
+      renderAdminUsers();
+    }
+
+    async function saveAdminUser() {
+      try {
+        if (!state.canManageAdminUsers) {
+          return;
+        }
+
+        el('adminUserError').textContent = '';
+        const request = {
+          username: el('adminUserName').value.trim(),
+          password: el('adminUserPassword').value,
+          role: el('adminUserRole').value,
+          isEnabled: el('adminUserEnabled').value === 'true'
+        };
+
+        if (state.editingAdminUserId) {
+          await fetchJson('/api/admin-users/' + state.editingAdminUserId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        } else {
+          await fetchJson('/api/admin-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          });
+        }
+
+        resetAdminUserForm();
+        await loadAdminUsers();
+      } catch (err) {
+        el('adminUserError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function deleteAdminUser(id) {
+      if (!state.canManageAdminUsers) {
+        return;
+      }
+
+      if (!confirm('Delete this admin user?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/admin-users/' + id, { method: 'DELETE' });
+        if (state.editingAdminUserId === id) {
+          resetAdminUserForm();
+        }
+        await loadAdminUsers();
+      } catch (err) {
+        el('adminUserError').textContent = 'Delete failed: ' + err.message;
+      }
+    }
+
+    function renderPurgePolicies() {
+      el('purgeBody').innerHTML = state.purgePolicies.map(policy =>
+        '<tr>' +
+          '<td>' + policy.name + '</td>' +
+          '<td>' + policy.applyTo + '</td>' +
+          '<td>' + policy.retentionDays + ' days</td>' +
+          '<td>' + policy.intervalMinutes + ' min</td>' +
+          '<td>' + statusPill(policy.isEnabled ? 'Enabled' : 'Disabled') + '</td>' +
+          '<td class="actions"><button onclick="editPurgePolicy(' + policy.id + ')">Edit</button></td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function resetPurgePolicyForm() {
+      state.editingPurgePolicyId = null;
+      if (state.purgePolicies.length === 0) {
+        el('purgePolicyId').value = '';
+        el('purgeEnabled').value = 'true';
+        el('purgeApplyTo').value = 'DeliveryAttempts';
+        el('purgeRetentionDays').value = 30;
+        el('purgeIntervalMinutes').value = 60;
+        el('purgeTerminalStatuses').value = '';
+        return;
+      }
+
+      const first = state.purgePolicies[0];
+      state.editingPurgePolicyId = first.id;
+      el('purgePolicyId').value = String(first.id);
+      el('purgeEnabled').value = first.isEnabled ? 'true' : 'false';
+      el('purgeApplyTo').value = first.applyTo;
+      el('purgeRetentionDays').value = first.retentionDays;
+      el('purgeIntervalMinutes').value = first.intervalMinutes;
+      el('purgeTerminalStatuses').value = first.terminalStatusesCsv || '';
+    }
+
+    function editPurgePolicy(id) {
+      const policy = state.purgePolicies.find(x => x.id === id);
+      if (!policy) return;
+
+      state.editingPurgePolicyId = id;
+      el('purgePolicyId').value = String(policy.id);
+      el('purgeEnabled').value = policy.isEnabled ? 'true' : 'false';
+      el('purgeApplyTo').value = policy.applyTo;
+      el('purgeRetentionDays').value = policy.retentionDays;
+      el('purgeIntervalMinutes').value = policy.intervalMinutes;
+      el('purgeTerminalStatuses').value = policy.terminalStatusesCsv || '';
+    }
+
+    async function loadRetentionSettings() {
+      const settings = await fetchJson('/api/retention-settings');
+      state.retentionSettings = settings;
+
+      el('retentionEnabled').value = settings.isEnabled ? 'true' : 'false';
+      el('retentionDays').value = settings.retentionDays;
+      el('retentionInterval').value = settings.intervalMinutes;
+    }
+
+    async function saveRetentionSettings() {
+      try {
+        el('retentionError').textContent = '';
+
+        await fetchJson('/api/retention-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isEnabled: el('retentionEnabled').value === 'true',
+            retentionDays: Number(el('retentionDays').value),
+            intervalMinutes: Number(el('retentionInterval').value)
+          })
+        });
+
+        await loadRetentionSettings();
+      } catch (err) {
+        el('retentionError').textContent = 'Failed saving retention settings: ' + err.message;
+      }
+    }
+
+    async function loadPurgePolicies() {
+      state.purgePolicies = await fetchJson('/api/purge-policies');
+      setPurgePolicyOptions();
+      renderPurgePolicies();
+      resetPurgePolicyForm();
+    }
+
+    async function savePurgePolicy() {
+      try {
+        el('purgeError').textContent = '';
+
+        const selectedId = Number(el('purgePolicyId').value);
+        const id = state.editingPurgePolicyId || selectedId;
+        if (!id) {
+          el('purgeError').textContent = 'No purge policy selected.';
+          return;
+        }
+
+        await fetchJson('/api/purge-policies/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isEnabled: el('purgeEnabled').value === 'true',
+            applyTo: el('purgeApplyTo').value,
+            retentionDays: Number(el('purgeRetentionDays').value),
+            terminalStatusesCsv: el('purgeTerminalStatuses').value.trim() || null,
+            intervalMinutes: Number(el('purgeIntervalMinutes').value)
+          })
+        });
+
+        await loadPurgePolicies();
+      } catch (err) {
+        el('purgeError').textContent = 'Failed saving purge policy: ' + err.message;
+      }
+    }
+
+    async function loadRules() {
+      el('ruleError').textContent = '';
+      const rules = await fetchJson('/api/rules');
+      state.rules = rules;
+      flattenDestinations();
+      setRuleOptions('folderRuleId');
+      setRuleOptions('forwardRuleId');
+      renderRules();
+      renderFolderDestinations();
+      renderForwardDestinations();
+      renderTopology();
+    }
+
+    function resetRuleForm() {
+      state.editingRuleId = null;
+      el('ruleName').value = '';
+      el('rulePriority').value = 100;
+      el('queueType').value = 'Exact';
+      el('queueValue').value = 'main';
+      el('matchOperator').value = 'And';
+      el('ruleEnabled').value = 'true';
+      el('ruleColor').value = '#0F5CC0';
+    }
+
+    function resetFolderForm() {
+      state.editingFolderId = null;
+      el('folderRuleId').value = '';
+      el('folderOrder').value = 1;
+      el('folderRoot').value = 'data/routed';
+      el('folderPatternType').value = 'DotNetDateFormat';
+      el('folderPattern').value = 'yyyy/MM/dd';
+      el('folderDuplicatePolicy').value = 'UniqueName';
+      el('folderUniqueNameMode').value = 'Counter';
+      el('folderUniqueAffix').value = '';
+      el('folderRetryPolicyId').value = '';
+      el('folderEnabled').value = 'true';
+      el('folderRetryOnFailure').value = 'true';
+    }
+
+    function resetForwardForm() {
+      state.editingForwardId = null;
+      el('forwardRuleId').value = '';
+      el('forwardOrder').value = 1;
+      el('forwardHost').value = '127.0.0.1';
+      el('forwardPort').value = 515;
+      el('forwardQueue').value = 'remote-queue';
+      el('forwardCompression').value = 'None';
+      el('forwardPayloadMode').value = 'StoredFile';
+      el('forwardRetryPolicyId').value = '';
+      el('forwardEnabled').value = 'true';
+    }
+
+    async function saveRule() {
+      try {
+        const ruleNameInput = el('ruleName').value.trim();
+
+        const request = {
+          name: ruleNameInput,
+          priority: Number(el('rulePriority').value),
+          isEnabled: el('ruleEnabled').value === 'true',
+          matchOperator: el('matchOperator').value,
+          queueMatchType: el('queueType').value,
+          queueMatchValue: el('queueValue').value || null,
+          sourceIpCidr: null,
+          virtualPrinterId: null,
+          stopProcessingOnMatch: false,
+          highlightColor: normalizeHexColor(el('ruleColor').value)
+        };
+
+        if (state.editingRuleId) {
+          await fetchJson('/api/rules/' + state.editingRuleId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        } else {
+          await fetchJson('/api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        }
+
+        resetRuleForm();
+        await loadRules();
+      } catch (err) {
+        if (!state.editingRuleId && typeof el('ruleName').value === 'string') {
+          const attemptedName = el('ruleName').value.trim().toLowerCase();
+          const existing = state.rules.find(x => (x.name || '').toLowerCase() === attemptedName);
+          if (existing && String(err.message || '').toLowerCase().includes('already exists')) {
+            editRule(existing.id);
+            el('ruleError').textContent = 'A rule with this name already exists. Loaded existing rule for editing.';
+            return;
+          }
+        }
+
+        el('ruleError').textContent = 'Save failed:\n' + err.message;
+      }
+    }
+
+    async function saveRuleOrder() {
+      try {
+        await fetchJson('/api/rules/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedRuleIds: state.rules.map(rule => rule.id) })
+        });
+        await loadRules();
+      } catch (err) {
+        el('ruleError').textContent = 'Reorder failed: ' + err.message;
+      }
+    }
+
+    async function saveFolder() {
+      try {
+        const selectedRuleId = Number(el('folderRuleId').value);
+        if (!selectedRuleId) {
+          el('folderError').textContent = 'Please choose a rule before saving a folder destination.';
+          return;
+        }
+
+        const request = {
+          ruleId: selectedRuleId,
+          isEnabled: el('folderEnabled').value === 'true',
+          destinationOrder: Number(el('folderOrder').value),
+          rootFolder: el('folderRoot').value,
+          subfolderPatternType: el('folderPatternType').value,
+          subfolderPattern: el('folderPattern').value,
+          duplicatePolicy: el('folderDuplicatePolicy').value,
+          uniqueNameMode: el('folderUniqueNameMode').value,
+          uniqueNameAffix: el('folderUniqueAffix').value || null,
+          retryPolicyId: el('folderRetryPolicyId').value ? Number(el('folderRetryPolicyId').value) : null,
+          isQueueOnFailure: el('folderRetryOnFailure').value === 'true'
+        };
+
+        if (state.editingFolderId) {
+          await fetchJson('/api/folder-destinations/' + state.editingFolderId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        } else {
+          await fetchJson('/api/folder-destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        }
+
+        resetFolderForm();
+        await loadRules();
+      } catch (err) {
+        el('folderError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function saveForward() {
+      try {
+        const selectedRuleId = Number(el('forwardRuleId').value);
+        if (!selectedRuleId) {
+          el('forwardError').textContent = 'Please choose a rule before saving an LPD forward destination.';
+          return;
+        }
+
+        const request = {
+          ruleId: selectedRuleId,
+          isEnabled: el('forwardEnabled').value === 'true',
+          destinationOrder: Number(el('forwardOrder').value),
+          host: el('forwardHost').value,
+          port: Number(el('forwardPort').value),
+          outboundQueueName: el('forwardQueue').value,
+          compressMode: el('forwardCompression').value,
+          payloadMode: el('forwardPayloadMode').value,
+          retryPolicyId: el('forwardRetryPolicyId').value ? Number(el('forwardRetryPolicyId').value) : null
+        };
+
+        if (state.editingForwardId) {
+          await fetchJson('/api/forward-destinations/' + state.editingForwardId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        } else {
+          await fetchJson('/api/forward-destinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+        }
+
+        resetForwardForm();
+        await loadRules();
+      } catch (err) {
+        el('forwardError').textContent = 'Save failed: ' + err.message;
+      }
+    }
+
+    async function loadQueue() {
+      try {
+        el('queueError').textContent = '';
+        ensureQueueDateRangeDefaults();
+        const status = el('queueStatusFilter').value;
+        const search = el('queueSearch').value.trim();
+        const startDate = el('queueStartDate').value;
+        const endDate = el('queueEndDate').value;
+        if (startDate && endDate && startDate > endDate) {
+          throw new Error('Start Date cannot be after End Date.');
+        }
+        const pageSize = Number(el('queuePageSize').value);
+        const query = new URLSearchParams({ page: String(state.queuePage), pageSize: String(pageSize) });
+        if (status && status !== 'All') query.set('status', status);
+        if (search) query.set('search', search);
+        if (startDate) query.set('startDate', startDate);
+        if (endDate) query.set('endDate', endDate);
+
+        const result = await fetchJson('/api/delivery/work-items?' + query.toString());
+        if (!result || typeof result !== 'object') {
+          throw new Error('Unexpected queue response from server.');
+        }
+
+        state.workItems = result.items || [];
+        state.queuePage = result.page || 1;
+        state.queueTotalPages = result.totalPages || 1;
+        renderQueue();
+
+        if (state.queueSelectedId && state.workItems.some(x => x.id === state.queueSelectedId)) {
+          await showDetails(state.queueSelectedId);
+        }
+      } catch (err) {
+        el('queueError').textContent = 'Failed loading queue: ' + err.message;
+      }
+    }
+
+    async function goToQueuePage(page) {
+      const normalized = Math.max(1, Math.min(state.queueTotalPages, Number(page) || 1));
+      state.queuePage = normalized;
+      await loadQueue();
+    }
+
+    function ensureQueueDetailsVisible() {
+      const detailsContent = el('queueDetails');
+      if (!detailsContent) {
+        return;
+      }
+
+      const detailsPanel = detailsContent.closest('.details-panel') || detailsContent;
+      const rect = detailsPanel.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 72;
+      const topInset = headerOffset + 12;
+      const bottomInset = 24;
+      const fullyVisible = rect.top >= topInset && rect.bottom <= (window.innerHeight - bottomInset);
+
+      if (!fullyVisible) {
+        const panelTop = window.scrollY + rect.top;
+        const targetTop = Math.max(0, panelTop - topInset);
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    }
+
+    function alignQueueDetailsPanelToSelection() {
+      const anchor = document.querySelector('[data-view="delivery"] .delivery-grid-anchor');
+      const detailsPanel = anchor ? anchor.querySelector('.details-panel') : null;
+      if (!detailsPanel) {
+        return;
+      }
+
+      detailsPanel.style.position = '';
+      detailsPanel.style.top = '';
+      detailsPanel.style.left = '';
+      detailsPanel.style.width = '';
+      detailsPanel.style.maxHeight = '';
+
+      if (!window.matchMedia('(min-width: 1000px)').matches) {
+        anchor.style.position = '';
+        anchor.style.top = '';
+        anchor.style.maxHeight = '';
+        anchor.style.overflow = '';
+        return;
+      }
+
+      anchor.style.position = 'sticky';
+      anchor.style.top = 'calc(var(--header-offset) + 12px)';
+      anchor.style.maxHeight = 'calc(100vh - var(--header-offset) - 24px)';
+      anchor.style.overflow = 'auto';
+
+      anchor.scrollTop = 0;
+      detailsPanel.scrollTop = 0;
+    }
+
+    function scheduleQueueDetailsAlignment(scrollSelectedRow = false) {
+      requestAnimationFrame(() => {
+        alignQueueDetailsPanelToSelection();
+
+        if (scrollSelectedRow && !window.matchMedia('(min-width: 1000px)').matches) {
+          ensureQueueDetailsVisible();
+        }
+      });
+    }
+
+    function ensureSelectedQueueRowVisible(preferAlignedPosition = false) {
+      const selectedRow = document.querySelector('.queue-row.selected');
+      if (!selectedRow) {
+        return;
+      }
+
+      const rect = selectedRow.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 72;
+      const topInset = headerOffset + 16;
+      const bottomInset = 20;
+      const rowVisible = rect.top >= topInset && rect.bottom <= (window.innerHeight - bottomInset);
+
+      const preferredTop = topInset + Math.max(96, Math.round((window.innerHeight - topInset - bottomInset) * 0.34));
+      const rowTopPage = window.scrollY + rect.top;
+      const preferredScrollTop = Math.max(0, rowTopPage - preferredTop);
+      const needsAlignment = Math.abs(window.scrollY - preferredScrollTop) > 24;
+
+      if (preferAlignedPosition && needsAlignment) {
+        window.scrollTo({ top: preferredScrollTop, behavior: 'smooth' });
+        return;
+      }
+
+      if (!rowVisible) {
+        const rowCenter = window.scrollY + rect.top + (rect.height / 2);
+        const targetTop = Math.max(0, rowCenter - ((window.innerHeight + topInset) / 2));
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      }
+    }
+
+    async function showDetails(id, scrollToPanel = false) {
+      try {
+        state.queueSelectedId = id;
+        const item = await fetchJson('/api/delivery/work-items/' + id);
+        const attempts = item.attempts || [];
+        const attemptHtml = attempts.length === 0
+          ? '<div class="muted">No attempts recorded yet.</div>'
+          : '<table><thead><tr><th>#</th><th>Outcome</th><th>Started</th><th>Error</th></tr></thead><tbody>' + attempts.map(attempt =>
+              '<tr><td>' + attempt.attemptNumber + '</td><td>' + statusPill(attempt.outcome) + '</td><td>' + formatLocalTime(attempt.startedUtc) + '</td><td>' + (attempt.errorMessage || '') + '</td></tr>'
+            ).join('') + '</tbody></table>';
+        const actionHtml = state.canManageSettings
+          ? '<div class="toolbar" style="margin-top:10px;">'
+              + '<button onclick="retryItem(\'' + item.id + '\'); return false;">Retry Now</button>'
+              + (!isTerminalQueueStatus(item.status) ? '<button class="danger" onclick="cancelItem(\'' + item.id + '\'); return false;">Cancel Item</button>' : '')
+            + '</div>'
+          : '';
+
+        el('queueDetails').innerHTML =
+          '<div><strong>Work Item:</strong> ' + item.id + '</div>' +
+          '<div><strong>Status:</strong> ' + statusPill(item.status) + '</div>' +
+          '<div><strong>Destination:</strong> ' + destinationSummary(item) + '</div>' +
+          '<div><strong>Attempts:</strong> ' + item.attemptCount + '</div>' +
+          actionHtml +
+          '<div style="margin-top:10px;">' + attemptHtml + '</div>';
+
+        const detailsPanel = document.querySelector('[data-view="delivery"] .details-panel');
+        if (detailsPanel) {
+          detailsPanel.scrollTop = 0;
+        }
+
+        scheduleQueueDetailsAlignment(scrollToPanel);
+      } catch (err) {
+        el('queueError').textContent = 'Failed loading details: ' + err.message;
+      }
+    }
+
+    function selectQueueItem(id) {
+      state.queueSelectedId = id;
+      renderQueue();
+      showDetails(id, true);
+    }
+
+    window.addEventListener('resize', () => {
+      scheduleQueueDetailsAlignment(false);
+    });
+
+    async function retryItem(id) {
+      try {
+        await fetchJson('/api/delivery/work-items/' + id + '/retry-now', { method: 'POST' });
+        await loadQueue();
+        await showDetails(id);
+      } catch (err) {
+        el('queueError').textContent = 'Retry failed: ' + err.message;
+      }
+    }
+
+    async function cancelItem(id) {
+      if (!state.canManageSettings) {
+        return;
+      }
+
+      if (!confirm('Cancel this delivery queue item?')) {
+        return;
+      }
+
+      try {
+        await fetchJson('/api/delivery/work-items/' + id + '/cancel', { method: 'POST' });
+        await loadQueue();
+        await showDetails(id);
+      } catch (err) {
+        el('queueError').textContent = 'Cancel failed: ' + err.message;
+      }
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('Delete this rule?')) return;
+      await fetchJson('/api/rules/' + id, { method: 'DELETE' });
+      if (state.editingRuleId === id) resetRuleForm();
+      await loadRules();
+    }
+
+    async function deleteFolder(id) {
+      if (!confirm('Delete this folder destination?')) return;
+      await fetchJson('/api/folder-destinations/' + id, { method: 'DELETE' });
+      if (state.editingFolderId === id) resetFolderForm();
+      await loadRules();
+    }
+
+    async function deleteForward(id) {
+      if (!confirm('Delete this forward destination?')) return;
+      await fetchJson('/api/forward-destinations/' + id, { method: 'DELETE' });
+      if (state.editingForwardId === id) resetForwardForm();
+      await loadRules();
+    }
+
+    function moveRule(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= state.rules.length) return;
+      const [item] = state.rules.splice(index, 1);
+      state.rules.splice(target, 0, item);
+      renderRules();
+    }
+
+    function editRule(id) {
+      const rule = state.rules.find(x => x.id === id);
+      if (!rule) return;
+      state.editingRuleId = id;
+      el('ruleName').value = rule.name;
+      el('rulePriority').value = rule.priority;
+      el('queueType').value = rule.queueMatchType;
+      el('queueValue').value = rule.queueMatchValue || '';
+      el('matchOperator').value = rule.matchOperator;
+      el('ruleEnabled').value = rule.isEnabled ? 'true' : 'false';
+      el('ruleColor').value = normalizeHexColor(rule.highlightColor);
+    }
+
+    function editFolder(id) {
+      const dest = state.folderDestinations.find(x => x.id === id);
+      if (!dest) return;
+      state.editingFolderId = id;
+      el('folderRuleId').value = String(dest.ruleId);
+      el('folderOrder').value = dest.destinationOrder;
+      el('folderRoot').value = dest.rootFolder;
+      el('folderPatternType').value = dest.subfolderPatternType;
+      el('folderPattern').value = dest.subfolderPattern;
+      el('folderDuplicatePolicy').value = dest.duplicatePolicy;
+      el('folderUniqueNameMode').value = dest.uniqueNameMode || 'Counter';
+      el('folderUniqueAffix').value = dest.uniqueNameAffix || '';
+      el('folderRetryPolicyId').value = dest.retryPolicyId || '';
+      el('folderEnabled').value = dest.isEnabled ? 'true' : 'false';
+      el('folderRetryOnFailure').value = dest.isQueueOnFailure ? 'true' : 'false';
+    }
+
+    function editForward(id) {
+      const dest = state.forwardDestinations.find(x => x.id === id);
+      if (!dest) return;
+      state.editingForwardId = id;
+      el('forwardRuleId').value = String(dest.ruleId);
+      el('forwardOrder').value = dest.destinationOrder;
+      el('forwardHost').value = dest.host;
+      el('forwardPort').value = dest.port;
+      el('forwardQueue').value = dest.outboundQueueName;
+      el('forwardCompression').value = dest.compressMode;
+      el('forwardPayloadMode').value = dest.payloadMode;
+      el('forwardRetryPolicyId').value = dest.retryPolicyId || '';
+      el('forwardEnabled').value = dest.isEnabled ? 'true' : 'false';
+    }
+
+    async function logout() {
+      clearSessionGuards();
+      try {
+        await fetchJson('/auth/logout', { method: 'POST' });
+      } catch (_) {
+        // Redirect anyway so the user can re-authenticate even if logout call fails.
+      }
+
+      window.location.href = resolveAppUrl('/login.html');
+    }
+
+    // ── Status page ────────────────────────────────────────────────
+
+    function renderStatus(status) {
+      const isPaused = status.isPaused;
+
+      // Dispatcher badge
+      const badge = el('dispatcherBadge');
+      badge.className = 'dispatcher-badge ' + (isPaused ? 'paused' : 'running');
+      el('dispatcherLabel').textContent = isPaused ? 'Paused' : 'Running';
+
+      // Meta line
+      let meta = '';
+      if (isPaused) {
+        if (status.pausedAtUtc) {
+          meta += 'Paused since ' + new Date(status.pausedAtUtc).toLocaleString();
+        }
+        if (status.resumeAtUtc) {
+          meta += ' · Resumes at ' + new Date(status.resumeAtUtc).toLocaleString();
+        } else {
+          meta += ' · No automatic resume scheduled';
+        }
+        if (status.pauseReason) {
+          meta += '\nReason: ' + status.pauseReason;
+        }
+      } else {
+        meta = 'Dispatching delivery work items normally.';
+      }
+      el('dispatcherMeta').textContent = meta;
+
+      // Queue stats
+      const qs = status.queueStats || {};
+      const strip = el('queueStatStrip');
+      const boxes = strip.querySelectorAll('.stat-box');
+      const vals = [qs.pending, qs.inProgress, qs.retryScheduled, qs.succeeded, qs.failed, qs.canceled];
+      vals.forEach((v, i) => {
+        boxes[i].querySelector('.count').textContent = v != null ? String(v) : '–';
+      });
+      el('queueStatTotal').textContent = qs.total != null ? String(qs.total) : '–';
+
+      const topRules = status.topRulesByDestinationCount || [];
+      el('statusTopRulesBody').innerHTML = topRules.length === 0
+        ? '<tr><td colspan="5" class="muted">No rules with destinations yet.</td></tr>'
+        : topRules.map(entry =>
+            '<tr>' +
+              '<td>' + entry.ruleName + '</td>' +
+              '<td>' + entry.folderDestinationCount + '</td>' +
+              '<td>' + entry.forwardDestinationCount + '</td>' +
+              '<td><strong>' + entry.totalDestinationCount + '</strong></td>' +
+              '<td>' + (entry.deliveredReportCount ?? 0) + '</td>' +
+            '</tr>'
+          ).join('');
+
+      // Listener badge
+      const listenerBadge = el('listenerBadge');
+      listenerBadge.className = 'dispatcher-badge ' + (status.isListening ? 'running' : 'paused');
+      el('listenerLabel').textContent = status.isListening ? 'Listening' : 'Not Listening';
+      el('listenerMeta').textContent = status.isListening
+        ? 'LPD port is accepting connections.'
+        : 'LPD listener is stopped or encountered an error.';
+    }
+
+    async function loadStatus() {
+      try {
+        el('statusError').textContent = '';
+        const status = await fetchJson('/api/delivery/status');
+        renderStatus(status);
+      } catch (err) {
+        el('statusError').textContent = 'Failed loading status: ' + err.message;
+      }
+    }
+
+    async function pauseDelivery() {
+      try {
+        el('statusError').textContent = '';
+        const durationStr = el('pauseDuration').value;
+        const reason = el('pauseReason').value.trim() || null;
+        const request = {
+          durationMinutes: durationStr ? Number(durationStr) : null,
+          reason: reason
+        };
+        await fetchJson('/api/delivery/pause', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+        await loadStatus();
+      } catch (err) {
+        el('statusError').textContent = 'Pause failed: ' + err.message;
+      }
+    }
+
+    async function resumeDelivery() {
+      try {
+        el('statusError').textContent = '';
+        await fetchJson('/api/delivery/resume', { method: 'POST' });
+        await loadStatus();
+      } catch (err) {
+        el('statusError').textContent = 'Resume failed: ' + err.message;
+      }
+    }
+
+    window.moveRule = moveRule;
+    window.editRule = editRule;
+    window.editFolder = editFolder;
+    window.editForward = editForward;
+    window.deleteRule = deleteRule;
+    window.deleteFolder = deleteFolder;
+    window.deleteForward = deleteForward;
+    window.showDetails = showDetails;
+    window.selectQueueItem = selectQueueItem;
+    window.retryItem = retryItem;
+    window.cancelItem = cancelItem;
+    window.editPurgePolicy = editPurgePolicy;
+    window.editAdminUser = editAdminUser;
+    window.deleteAdminUser = deleteAdminUser;
+    window.jumpToSettingsItem = jumpToSettingsItem;
+
+    function setActiveView(viewName) {
+      if (viewName === 'administrators' && !state.canManageAdminUsers) {
+        viewName = 'status';
+      }
+
+      if (viewName === 'alerts' && !state.canManageAdminUsers) {
+        viewName = 'status';
+      }
+
+      document.querySelectorAll('[data-view]').forEach(section => {
+        section.classList.toggle('active', section.getAttribute('data-view') === viewName);
+      });
+      document.querySelectorAll('[data-view-target]').forEach(button => {
+        button.classList.toggle('active', button.getAttribute('data-view-target') === viewName);
+      });
+      el('activeViewChip').textContent = viewLabels[viewName] || 'Settings';
+    }
+
+    document.querySelectorAll('[data-view-target]').forEach(button => {
+      button.addEventListener('click', () => {
+        const target = button.getAttribute('data-view-target') || 'rules';
+        setActiveView(target);
+        if (window.innerWidth < 980) {
+          state.isMenuCollapsed = true;
+          applyMenuState();
+        }
+        if (target === 'status') {
+          applyStatusLayoutToGrid();
+          loadStatus();
+        }
+        if (target === 'retention') {
+          loadRetentionSettings();
+          loadPurgePolicies();
+        }
+        if (target === 'administrators') {
+          resetAdminUserForm();
+          loadAdminUsers();
+        }
+
+        if (target === 'alerts') {
+          loadAlertSettings();
+        }
+      });
+    });
+
+    el('menuToggle').addEventListener('click', () => {
+      state.isMenuCollapsed = !state.isMenuCollapsed;
+      applyMenuState();
+    });
+
+    el('menuOverlay').addEventListener('click', () => {
+      if (window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const key = (event.key || '').toLowerCase();
+      const usesToggleShortcut = (event.ctrlKey || event.metaKey) && key === 'b';
+
+      if (usesToggleShortcut) {
+        event.preventDefault();
+        state.isMenuCollapsed = !state.isMenuCollapsed;
+        applyMenuState();
+        return;
+      }
+
+      if (key === 'escape' && window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      syncLayoutOffsets();
+      if (window.innerWidth >= 980 && state.isMenuCollapsed) {
+        state.isMenuCollapsed = false;
+        applyMenuState();
+      } else if (window.innerWidth < 980 && !state.isMenuCollapsed) {
+        state.isMenuCollapsed = true;
+        applyMenuState();
+      }
+
+       applyStatusLayoutToGrid();
+    });
+
+    el('saveRule').addEventListener('click', saveRule);
+    el('resetRule').addEventListener('click', resetRuleForm);
+    el('refreshRules').addEventListener('click', async () => { await loadRules(); });
+    el('saveRuleOrder').addEventListener('click', saveRuleOrder);
+    el('saveFolder').addEventListener('click', saveFolder);
+    el('resetFolder').addEventListener('click', resetFolderForm);
+    el('saveForward').addEventListener('click', saveForward);
+    el('resetForward').addEventListener('click', resetForwardForm);
+    el('saveRetention').addEventListener('click', saveRetentionSettings);
+    el('refreshRetention').addEventListener('click', async () => {
+      await loadRetentionSettings();
+      await loadPurgePolicies();
+    });
+    el('purgePolicyId').addEventListener('change', () => {
+      const selectedId = Number(el('purgePolicyId').value);
+      if (selectedId > 0) {
+        editPurgePolicy(selectedId);
+      }
+    });
+    el('savePurgePolicy').addEventListener('click', savePurgePolicy);
+    el('resetPurgePolicy').addEventListener('click', resetPurgePolicyForm);
+    el('saveAdminUser').addEventListener('click', saveAdminUser);
+    el('resetAdminUser').addEventListener('click', resetAdminUserForm);
+    el('refreshAdminUsers').addEventListener('click', async () => { await loadAdminUsers(); });
+    el('refreshQueue').addEventListener('click', async () => { state.queuePage = 1; await loadQueue(); });
+    el('jumpToItem').addEventListener('click', () => {
+      const selected = el('jumpItemSelect').value || '';
+      const parts = selected.split('|');
+      if (parts.length !== 2) {
+        el('topologyError').textContent = 'Please select a rule, folder, or LPD item first.';
+        return;
+      }
+
+      jumpToSettingsItem(parts[0], parts[1]);
+    });
+    el('topologySearch').addEventListener('input', () => {
+      renderTopology();
+    });
+    el('queueStatusFilter').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueSearch').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueStartDate').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queueEndDate').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('queuePageSize').addEventListener('change', async () => { state.queuePage = 1; await loadQueue(); });
+    el('firstPage').addEventListener('click', async () => { await goToQueuePage(1); });
+    el('prevPage').addEventListener('click', async () => { if (state.queuePage > 1) { state.queuePage -= 1; await loadQueue(); } });
+    el('nextPage').addEventListener('click', async () => { if (state.queuePage < state.queueTotalPages) { state.queuePage += 1; await loadQueue(); } });
+    el('lastPage').addEventListener('click', async () => { await goToQueuePage(state.queueTotalPages); });
+    el('jumpPage').addEventListener('click', async () => { await goToQueuePage(el('queuePageInput').value); });
+    el('queuePageInput').addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        await goToQueuePage(el('queuePageInput').value);
+      }
+    });
+    el('logoutButton').addEventListener('click', logout);
+    el('pauseBtn').addEventListener('click', pauseDelivery);
+    el('resumeBtn').addEventListener('click', resumeDelivery);
+    el('refreshStatus').addEventListener('click', loadStatus);
+    el('toggleStatusLayoutLock').addEventListener('click', toggleStatusLayoutLock);
+    el('resetStatusLayout').addEventListener('click', resetStatusLayoutForCurrentUser);
+    el('saveAlertSettings').addEventListener('click', saveAlertSettings);
+    el('refreshAlertSettings').addEventListener('click', async () => { await loadAlertSettings(); });
+
+    (async function init() {
+      syncLayoutOffsets();
+      attachLabelHelp();
+      state.isMenuCollapsed = window.innerWidth < 980;
+      state.currentUsername = 'anonymous';
+      initializeStatusLayoutForCurrentUser();
+      applyMenuState();
+      ensureQueueDateRangeDefaults();
+      setActiveView('status');
+      applyAccessControls();
+      await loadAuthStatus();
+      await loadAppVersion();
+      resetRuleForm();
+      await loadRetryPolicies();
+      resetFolderForm();
+      resetForwardForm();
+      await loadRules();
+      await loadQueue();
+      await loadStatus();
+      await loadRetentionSettings();
+      await loadPurgePolicies();
+      await loadAlertSettings();
+    })();
+  </script>
+</body>
+</html>

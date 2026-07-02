@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <!-- Semantic base version for the product; increment intentionally for each release. -->
+    <VersionPrefix Condition="'$(VersionPrefix)' == ''">2.0.0</VersionPrefix>
+
+    <!-- Changes every build unless explicitly provided by CI. -->
+    <BuildNumber Condition="'$(BuildNumber)' == ''">$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmmss'))</BuildNumber>
+
+    <!-- Short source revision used in informational version metadata. -->
+    <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">local</SourceRevisionId>
+    <SourceRevisionShort>$([System.String]::Copy('$(SourceRevisionId)').Substring(0, $([System.Math]::Min($([System.String]::Copy('$(SourceRevisionId)').Length), 8))))</SourceRevisionShort>
+
+    <!-- Keep AssemblyVersion stable for runtime binding compatibility. -->
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+
+    <!-- File version uses day-of-year + minute-of-day so it stays numeric and updates frequently. -->
+    <_BuildDayOfYear>$([System.DateTime]::UtcNow.DayOfYear)</_BuildDayOfYear>
+    <_BuildHourMinute>$([System.DateTime]::UtcNow.ToString('HHmm'))</_BuildHourMinute>
+    <FileVersion>2.0.$(_BuildDayOfYear).$(_BuildHourMinute)</FileVersion>
+
+    <Version>$(VersionPrefix)-build.$(BuildNumber)</Version>
+    <InformationalVersion>$(VersionPrefix)+build.$(BuildNumber).sha.$(SourceRevisionShort)</InformationalVersion>
+  </PropertyGroup>
+</Project>

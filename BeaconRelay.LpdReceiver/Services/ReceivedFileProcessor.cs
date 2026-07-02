@@ -10,6 +10,8 @@ public sealed class ReceivedFileProcessor(
     AppDbContext dbContext,
     FileStorageService fileStorageService,
     Sha256Hasher sha256Hasher,
+    ProcessingRuleMatcher ruleMatcher,
+    DeliveryWorkItemEnqueuer workItemEnqueuer,
     IOptions<DeduplicationOptions> dedupOptions,
     ILogger<ReceivedFileProcessor> logger)
 {
@@ -18,6 +20,7 @@ public sealed class ReceivedFileProcessor(
     public async Task PersistSuccessfulSessionAsync(LpdReceivedJob job, CancellationToken cancellationToken)
     {
         var receivedUtc = DateTime.UtcNow;
+        var matchedRules = await ruleMatcher.GetMatchingRulesAsync(job, cancellationToken);
 
         for (var i = 0; i < job.DataFiles.Count; i++)
         {
@@ -52,7 +55,7 @@ public sealed class ReceivedFileProcessor(
                     cancellationToken);
             }
 
-            dbContext.ReceivedFiles.Add(new ReceivedFileRecord
+            var record = new ReceivedFileRecord
             {
                 ReceivedUtc = receivedUtc,
                 CreatedUtc = DateTime.UtcNow,
@@ -75,7 +78,10 @@ public sealed class ReceivedFileProcessor(
                 Status = status,
                 IsDuplicate = isDuplicate,
                 DuplicateOfId = existing?.Id,
-            });
+            };
+
+            dbContext.ReceivedFiles.Add(record);
+            workItemEnqueuer.EnqueueForReceivedFile(record, matchedRules, receivedUtc);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
